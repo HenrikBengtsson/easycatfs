@@ -327,5 +327,6 @@ if [[ ${action} == "mounts" ]]; then
     if $full; then
         opts="${opts} --full"
     fi
+    # shellcheck disable=SC2086
     catfs_mounts ${opts}
 fi
