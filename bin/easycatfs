@@ -2,41 +2,50 @@
 ### easycatfs
 ### 
 ### Usage:
-###  easycatfs [command] [target]
+###  easycatfs <command> [options] <target>
 ### 
 ### Commands:
-###  mount        Mount target locally
+###  mount        Mount target locally as read-only
 ###  unmount      Unmount locally mounted target
-###  mounts       List current mounts
+###  mounts       List currently mounted targets
+###  config       Output configuration
 ###
 ### Options:
-###  --help
-###  --version
-###  --debug
-###  --verbose    Same as --verbose=1
+###  --help       Display this help
+###  --version    Output version of this software
+###  --debug      Output detailed debug information
+###  --verbose    Output informative message
 ###  --all        Unmount all mounted targets
+###  --full       More details when listing mounts
+###
+### and 'target' should be an existing folder.
+### ---
 ###
 ### Example:
 ###  easycatfs --help
 ###  easycatfs --version
 ###
+###  easycatfs config
 ###  easycatfs mount "$HOME/R"
 ###  easycatfs mount "$HOME/.config"
 ###  easycatfs mounts
 ###  easycatfs unmount "$HOME/R"
 ###  easycatfs unmount --all
 ###
-###  mount_path=$(easycatfs mount "$HOME/R")
+###  r_mount=$(easycatfs mount "$HOME/R")
+###  export R_LIBS_USER=${r_mount}/%p-library/%v
 ###
 ### Environment variables:
 ###
-###  * ...
+###  EASYCATFS_ROOT:
+###    The path where to mount folders (default: $SCRATCHDIR, then $TMPDIR,
+###    then /tmp/$USER)
 ###
-### Requires:
+### Requirements:
 ###
 ###  * catfs (https://github.com/kahing/catfs)
 ###
-### Version: 0.0.0-9000
+### Version: 0.0.0-9001
 ### Copyright: Henrik Bengtsson (2021)
 ### License: MIT
 
@@ -61,7 +70,7 @@ source "${incl}/output.sh"
 # -------------------------------------------------------------------------
 function catfs_scratch_root {
     local scratch_dir
-    scratch_dir=${SCRATCHDIR:-${TMPDIR}}
+    scratch_dir=${EASYCATFS_ROOT:-${SCRATCHDIR:-${TMPDIR}}}
     mdebug "scratch_dir=${scratch_dir}"
     
     if [[ -z "${scratch_dir}" ]]; then
@@ -265,7 +274,9 @@ all=false
 while [[ $# -gt 0 ]]; do
     mdebug "Next CLI argument: $1"
     ## Commands:
-    if [[ "$1" == "mount" ]]; then
+    if [[ "$1" == "config" ]]; then
+        action="$1"
+    elif [[ "$1" == "mount" ]]; then
         action="$1"
     elif [[ "$1" == "mounts" ]]; then
         action="$1"
@@ -343,6 +354,10 @@ mdebug "path: ${path}"
 # -------------------------------------------------------------------------
 # Actions
 # -------------------------------------------------------------------------
+if [[ ${action} == "config" ]]; then
+    echo "mount_root=$(catfs_scratch_root)"
+fi
+
 if [[ ${action} == "mount" ]]; then
     [[ -n "${last_arg}" ]] || error "Missing target path argument"
     target_path=${last_arg}
