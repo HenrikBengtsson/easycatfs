@@ -26,7 +26,7 @@ jobs:
         mv shellcheck-v0.8.0/shellcheck .
         PATH=".:$PATH" shellcheck --version
 
-    - name: ${{ matrix.config.test }}
+    - name: ShellCheck
       run: |
         (cd bin; ../shellcheck -x easycatfs)
 

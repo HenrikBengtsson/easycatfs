@@ -94,23 +94,25 @@ function catfs_target_db_dir {
 
 
 function catfs_mounts {
+    typeset -i pid
+    local target_path
     scratch_dir=$(catfs_scratch_root)
 
     cache_root=${scratch_dir}/.easycatfs
     make_dir "${cache_root}"
 
     dirs=$(find "${cache_root}" -mindepth 1 -maxdepth 2 -type f -name target -exec dirname {} \;)
-    for dir in ${dirs[*]}; do
+    for dir in "${dirs[@]}"; do
         mdebug "dir: ${dir}"
         
         pid_file="${dir}/pid"
         mdebug "pid_file: ${pid_file}"
-        typeset -i pid=$(cat "${pid_file}")
+        pid=$(cat "${pid_file}")
         mdebug "catfs PID on file: ${pid}"
         
         target_file="${dir}/target"
         mdebug "target_file: ${target_file}"
-        typeset target_path=$(cat "${target_file}")
+        target_path=$(cat "${target_file}")
         mdebug "Target path on file: ${target_path}"
 
         mount_path=${scratch_dir}/${target_path}
@@ -128,6 +130,7 @@ function catfs_mounts {
 
 
 function catfs_unmount {
+    typeset -i pid
     local target_path
     target_path=$1
     
@@ -148,7 +151,7 @@ function catfs_unmount {
     pid_file="${mounts_db_dir}/pid"
     assert_file_exists "${pid_file}"
 
-    typeset -i pid=$(cat "${pid_file}")
+    pid=$(cat "${pid_file}")
     mdebug "catfs PID on file: ${pid}"
 
     kill "${pid}" || error "Failed to terminate 'catfs' process with ${pid}"
