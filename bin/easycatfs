@@ -93,9 +93,85 @@ function catfs_target_db_dir {
 }
 
 
+function find_catfs {
+    local bin
+    
+    bin=$(which catfs) || error "No such tool: catfs"
+    assert_file_executable "${bin}"
+    mdebug "catfs: ${bin}"
+    mdebug "$("${bin}" --version)"
+    echo "${bin}"
+}
+  
+function catfs_mount {
+    local bin
+    local target_path
+    local scratch_dir
+    local mounts_db_dir
+    local cache_path
+    local mount_path
+    local pid
+    local pid_file
+    local target_file
+
+    target_path=$1
+    assert_dir_exists "${target_path}"
+    
+    bin=$(find_catfs)
+    
+    scratch_dir=$(catfs_scratch_root)
+    mounts_db_dir=$(catfs_target_db_dir "${target_path}")
+
+    ## Already mounted?
+    if [[ -d "${mounts_db_dir}" ]]; then
+        merror "Already mounted: ${target_path}"
+    fi
+    
+    make_dir "${mounts_db_dir}"
+    
+    mount_path=${scratch_dir}/${target_path}
+    mount_path=${mount_path/\/\//\/}
+    mdebug "mount_path: ${mount_path}"
+    make_dir "${mount_path}"
+
+    cache_path=$(mktemp --directory --tmpdir="${mounts_db_dir}")
+    mdebug "catfs cache path: ${cache_path}"
+    assert_dir_exists "${cache_path}"
+
+    ## Note, we need to redirect stdout for the subshell running in the
+    ## background, otherwise mount_path=$(easycatfs <path>) will block
+    "${bin}" "${target_path}" "${cache_path}" "${mount_path}" -o ro > /dev/null &
+    pid=$!
+    mdebug "catfs PID: ${pid}"
+
+    pid_file="${mounts_db_dir}/pid"
+    mdebug "pid_file: ${pid_file}"
+    echo "${pid}" > "${pid_file}"
+
+    target_file="${mounts_db_dir}/target"
+    mdebug "target_file: ${target_file}"
+    echo "${target_path}" > "${target_file}"
+
+    minfo "Mounted '${mount_path}' as read-only to '${target_path}'"
+    minfo "To unmount, call: easycatfs unmount \"${target_path}\""
+
+    echo "${mount_path}"
+}
+
+
 function catfs_mounts {
     typeset -i pid
     local target_path
+    local scratch_dir
+    local cache_root
+    local dirs
+    local pid
+    local pid_file
+    local target_file
+    local target_path
+    local mount_path
+    local md5
+    
     scratch_dir=$(catfs_scratch_root)
 
     cache_root=${scratch_dir}/.easycatfs
@@ -132,8 +208,13 @@ function catfs_mounts {
 function catfs_unmount {
     typeset -i pid
     local target_path
-    target_path=$1
+    local scratch_dir
+    local mounts_db_dir
+    local mount_path
+    local pid
+    local pid_file
     
+    target_path=$1
     assert_dir_exists "${target_path}"
     
     scratch_dir=$(catfs_scratch_root)
@@ -263,52 +344,9 @@ mdebug "path: ${path}"
 # Actions
 # -------------------------------------------------------------------------
 if [[ ${action} == "mount" ]]; then
-    bin=$(which catfs) || error "No such tool: catfs"
-    assert_file_executable "${bin}"
-    mdebug "catfs: ${bin}"
-    mdebug "$("${bin}" --version)"
-
     [[ -n "${last_arg}" ]] || error "Missing target path argument"
     target_path=${last_arg}
-    assert_dir_exists "${target_path}"
-
-    scratch_dir=$(catfs_scratch_root)
-    mounts_db_dir=$(catfs_target_db_dir "${target_path}")
-
-    ## Already mounted?
-    if [[ -d "${mounts_db_dir}" ]]; then
-        merror "Already mounted: ${target_path}"
-    fi
-    
-    make_dir "${mounts_db_dir}"
-    
-    mount_path=${scratch_dir}/${target_path}
-    mount_path=${mount_path/\/\//\/}
-    mdebug "mount_path: ${mount_path}"
-    make_dir "${mount_path}"
-
-    cache_path=$(mktemp --directory --tmpdir="${mounts_db_dir}")
-    mdebug "catfs cache path: ${cache_path}"
-    assert_dir_exists "${cache_path}"
-
-    ## Note, we need to redirect stdout for the subshell running in the
-    ## background, otherwise mount_path=$(easycatfs <path>) will block
-    "${bin}" "${target_path}" "${cache_path}" "${mount_path}" -o ro > /dev/null &
-    pid=$!
-    mdebug "catfs PID: ${pid}"
-
-    pid_file="${mounts_db_dir}/pid"
-    mdebug "pid_file: ${pid_file}"
-    echo "${pid}" > "${pid_file}"
-
-    target_file="${mounts_db_dir}/target"
-    mdebug "target_file: ${target_file}"
-    echo "${target_path}" > "${target_file}"
-
-    minfo "Mounted '${mount_path}' as read-only to '${target_path}'"
-    minfo "To unmount, call: easycatfs unmount \"${target_path}\""
-
-    echo "${mount_path}"
+    catfs_mount "${target_path}"
 fi
 
 
