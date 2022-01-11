@@ -101,7 +101,7 @@ function catfs_mounts {
     cache_root=${scratch_dir}/.easycatfs
     make_dir "${cache_root}"
 
-    dirs=$(find "${cache_root}" -mindepth 1 -maxdepth 2 -type f -name target -exec dirname {} \;)
+    dirs=($(find "${cache_root}" -mindepth 1 -maxdepth 2 -type f -name target -exec dirname {} \;))
     for dir in "${dirs[@]}"; do
         mdebug "dir: ${dir}"
         
