@@ -1,13 +1,14 @@
 # easycatfs - Easy Read-Only Mounting of Slow Folders onto a Local Drive
 
-This is Linux command-line tool for mounting a folder on a network
-file system on a local disk such that the local-disk folder mirrors
-everything (read-only) on the network folder.  This will result in:
+This is Linux command-line tool for mounting one or more folders on a
+network file system on a local disk such that the local-disk folders
+mirrors everything (read-only) on the network folder.  This will
+result in:
 
  * faster repeated access to files
  * decreased load on the network file system
 
-This is particularly benefitial when working on high-performance
+This is particularly beneficial when working on high-performance
 compute (HPC) clusters used by hundreds and thousands of processes and
 users simultaneously.
 
@@ -23,10 +24,12 @@ cache folder as they are needed. This caching mechanism is fully
 automatic thanks to the **[catfs]** tool that is used internally.
 
 ```sh
+## Temporarily mount folder on local drive
 shared_data=$(easycatfs mount /shared/data)
 
 some_software --input=${shared_data}
 
+## Unmount temporarily mounted folders
 easycatfs unmount /shared/data
 ```
 
@@ -76,7 +79,10 @@ support.
 
 ## Install
 
-After making sure all above requirements are meet, install this software as:
+To use this software, download the [latest tarball
+version](https://github.com/HenrikBengtsson/easycatfs/tags), extract
+it to location of choice, and put its `bin/` folder on the search
+`PATH`.  For example,
 
 ```sh
 curl -L -O https://github.com/HenrikBengtsson/easycatfs/archive/refs/tags/0.1.0.tar.gz
