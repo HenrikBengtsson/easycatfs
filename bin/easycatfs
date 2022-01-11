@@ -2,23 +2,30 @@
 ### easycatfs
 ### 
 ### Usage:
-###  easycatfs [command] [target-path]
+###  easycatfs [command] [target]
 ### 
 ### Commands:
-###  mount        Mount target path locally
-###  unmount      Unmount locally mounted target path
+###  mount        Mount target locally
+###  unmount      Unmount locally mounted target
 ###  mounts       List current mounts
 ###
 ### Options:
 ###  --help
 ###  --version
 ###  --debug
-###  --verbose          Same as --verbose=1
+###  --verbose    Same as --verbose=1
+###  --all        Unmount all mounted targets
 ###
 ### Example:
 ###  easycatfs --help
 ###  easycatfs --version
+###
 ###  easycatfs mount "$HOME/R"
+###  easycatfs mount "$HOME/.config"
+###  easycatfs mounts
+###  easycatfs unmount "$HOME/R"
+###  easycatfs unmount --all
+###
 ###  mount_path=$(easycatfs mount "$HOME/R")
 ###
 ### Environment variables:
@@ -86,6 +93,71 @@ function catfs_target_db_dir {
 }
 
 
+function catfs_mounts {
+    scratch_dir=$(catfs_scratch_root)
+
+    cache_root=${scratch_dir}/.easycatfs
+    make_dir "${cache_root}"
+
+    dirs=$(find "${cache_root}" -mindepth 1 -maxdepth 2 -type f -name target -exec dirname {} \;)
+    for dir in ${dirs[*]}; do
+        mdebug "dir: ${dir}"
+        
+        pid_file="${dir}/pid"
+        mdebug "pid_file: ${pid_file}"
+        typeset -i pid=$(cat "${pid_file}")
+        mdebug "catfs PID on file: ${pid}"
+        
+        target_file="${dir}/target"
+        mdebug "target_file: ${target_file}"
+        typeset target_path=$(cat "${target_file}")
+        mdebug "Target path on file: ${target_path}"
+
+        mount_path=${scratch_dir}/${target_path}
+        mount_path=${mount_path/\/\//\/}
+
+        md5=$(basename "${dir}")
+
+        if [[ "$1" == "--full" ]]; then
+            printf "%s -> %s (md5=%s pid=%d)\n" "${mount_path}" "${target_path}" "${md5}" "${pid}"
+        else
+            echo "${target_path}"
+        fi
+    done
+}
+
+
+function catfs_unmount {
+    local target_path
+    target_path=$1
+    
+    assert_dir_exists "${target_path}"
+    
+    scratch_dir=$(catfs_scratch_root)
+    mounts_db_dir=$(catfs_target_db_dir "${target_path}")
+
+    ## Not mounted?
+    if [[ ! -d "${mounts_db_dir}" ]]; then
+        merror "Not mounted: ${target_path}"
+    fi
+
+    mount_path=${scratch_dir}/${target_path}
+    mount_path=${mount_path/\/\//\/}
+    mdebug "mount_path: ${mount_path}"
+
+    pid_file="${mounts_db_dir}/pid"
+    assert_file_exists "${pid_file}"
+
+    typeset -i pid=$(cat "${pid_file}")
+    mdebug "catfs PID on file: ${pid}"
+
+    kill "${pid}" || error "Failed to terminate 'catfs' process with ${pid}"
+    minfo "Unmounted \"${mount_path}\" -> \"${target_path}\""
+    
+    remove_dir "${mounts_db_dir}"
+    remove_dir "${mount_path}"
+}
+
 
 # -------------------------------------------------------------------------
 # MAIN
@@ -97,6 +169,8 @@ force=false
 verbose=false
 args=
 last_arg=
+full=false
+all=false
 
 # Parse command-line options
 while [[ $# -gt 0 ]]; do
@@ -120,6 +194,10 @@ while [[ $# -gt 0 ]]; do
         dryrun=true
     elif [[ "$1" == "--verbose" ]]; then
         verbose_level=1
+    elif [[ "$1" == "--all" ]]; then
+        all=true
+    elif [[ "$1" == "--full" ]]; then
+        full=true
     
     ## Options (--key=value):
     elif [[ "$1" =~ ^--.*=.*$ ]]; then
@@ -227,62 +305,27 @@ fi
 
 
 if [[ ${action} == "unmount" ]]; then
-    [[ -n "${last_arg}" ]] || error "Missing target path argument"
-    target_path=${last_arg}
-    assert_dir_exists "${target_path}"
-    
-    scratch_dir=$(catfs_scratch_root)
-    mounts_db_dir=$(catfs_target_db_dir "${target_path}")
-
-    ## Already mounted?
-    if [[ ! -d "${mounts_db_dir}" ]]; then
-        merror "Not mounted: ${target_path}"
+    opts=
+    if $all; then
+        targets=$(catfs_mounts)
+    else
+        [[ -n "${last_arg}" ]] || error "Missing target path argument"
+        target_path=${last_arg}
+        targets=${last_arg}
     fi
-
-    mount_path=${scratch_dir}/${target_path}
-    mount_path=${mount_path/\/\//\/}
-    mdebug "mount_path: ${mount_path}"
-
-    pid_file="${mounts_db_dir}/pid"
-    assert_file_exists "${pid_file}"
-
-    typeset -i pid=$(cat "${pid_file}")
-    mdebug "catfs PID on file: ${pid}"
-
-    kill "${pid}" || error "Failed to terminate 'catfs' process with ${pid}"
-    minfo "Unmounted \"${mount_path}\" -> \"${target_path}\""
-    
-    remove_dir "${mounts_db_dir}"
-    remove_dir "${mount_path}"
+    for target in ${targets}; do
+        mdebug "catfs_unmount \"${target}\" ..."
+        catfs_unmount "${target}"
+        mdebug "catfs_unmount \"${target}\" ... done"
+    done
 fi
 
 
 
 if [[ ${action} == "mounts" ]]; then
-    scratch_dir=$(catfs_scratch_root)
-
-    cache_root=${scratch_dir}/.easycatfs
-    make_dir "${cache_root}"
-
-    dirs=$(find "${cache_root}" -mindepth 1 -maxdepth 2 -type f -name target -exec dirname {} \;)
-    for dir in ${dirs[*]}; do
-        mdebug "dir: ${dir}"
-        
-        pid_file="${dir}/pid"
-        mdebug "pid_file: ${pid_file}"
-        typeset -i pid=$(cat "${pid_file}")
-        mdebug "catfs PID on file: ${pid}"
-        
-        target_file="${dir}/target"
-        mdebug "target_file: ${target_file}"
-        typeset target_path=$(cat "${target_file}")
-        mdebug "Target path on file: ${target_path}"
-
-        mount_path=${scratch_dir}/${target_path}
-        mount_path=${mount_path/\/\//\/}
-
-        md5=$(basename "${dir}")
-        
-        printf "%s -> %s (md5=%s pid=%d)\n" "${mount_path}" "${target_path}" "${md5}" "${pid}"
-    done
+    opts=
+    if $full; then
+        opts="${opts} --full"
+    fi
+    catfs_mounts ${opts}
 fi
