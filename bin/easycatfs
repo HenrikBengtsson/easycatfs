@@ -43,9 +43,11 @@
 ###
 ### Requirements:
 ###
+###  * Linux file system (local and remote)
+###  * Bash
 ###  * catfs (https://github.com/kahing/catfs)
 ###
-### Version: 0.0.0-9001
+### Version: 0.1.0
 ### Copyright: Henrik Bengtsson (2021)
 ### License: MIT
 
