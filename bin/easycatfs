@@ -11,7 +11,7 @@
 ###  config       Output configuration
 ###
 ### Options:
-###  --help       Display this help
+###  --help       Display the full help page with examples
 ###  --version    Output version of this software
 ###  --debug      Output detailed debug information
 ###  --verbose    Output informative message
@@ -38,8 +38,8 @@
 ### Environment variables:
 ###
 ###  EASYCATFS_ROOT:
-###    The path where to mount folders (default: $SCRATCHDIR, then $TMPDIR,
-###    then /tmp/$USER)
+###    The path where to mount folders (default: $SCRATCHDIR,
+###    then $TMPDIR, then /tmp/$USER)
 ###
 ### Requirements:
 ###
@@ -355,17 +355,12 @@ mdebug "path: ${path}"
 # Actions
 # -------------------------------------------------------------------------
 if [[ ${action} == "config" ]]; then
-    echo "mount_root=$(catfs_scratch_root)"
-fi
-
-if [[ ${action} == "mount" ]]; then
+    printf "mount_root=%s\n" "$(catfs_scratch_root)"
+elif [[ ${action} == "mount" ]]; then
     [[ -n "${last_arg}" ]] || error "Missing target path argument"
     target_path=${last_arg}
     catfs_mount "${target_path}"
-fi
-
-
-if [[ ${action} == "unmount" ]]; then
+elif [[ ${action} == "unmount" ]]; then
     opts=
     if $all; then
         targets=$(catfs_mounts)
@@ -379,15 +374,13 @@ if [[ ${action} == "unmount" ]]; then
         catfs_unmount "${target}"
         mdebug "catfs_unmount \"${target}\" ... done"
     done
-fi
-
-
-
-if [[ ${action} == "mounts" ]]; then
+elif [[ ${action} == "mounts" ]]; then
     opts=
     if $full; then
         opts="${opts} --full"
     fi
     # shellcheck disable=SC2086
     catfs_mounts ${opts}
+else
+    error "Unknown action: ${action}"
 fi
