@@ -1,3 +1,5 @@
+[![shellcheck](https://github.com/HenrikBengtsson/easycatfs/actions/workflows/shellcheck.yml/badge.svg)](https://github.com/HenrikBengtsson/easycatfs/actions/workflows/shellcheck.yml)
+
 # easycatfs - Easy Read-Only Mounting of Slow Folders onto a Local Drive
 
 This is Linux command-line tool for mounting one or more folders on a
