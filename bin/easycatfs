@@ -1,0 +1,288 @@
+#! /usr/bin/env bash
+### easycatfs
+### 
+### Usage:
+###  easycatfs [command] [target-path]
+### 
+### Commands:
+###  mount        Mount target path locally
+###  unmount      Unmount locally mounted target path
+###  mounts       List current mounts
+###
+### Options:
+###  --help
+###  --version
+###  --debug
+###  --verbose          Same as --verbose=1
+###
+### Example:
+###  easycatfs --help
+###  easycatfs --version
+###  easycatfs mount "$HOME/R"
+###  mount_path=$(easycatfs mount "$HOME/R")
+###
+### Environment variables:
+###
+###  * ...
+###
+### Requires:
+###
+###  * catfs (https://github.com/kahing/catfs)
+###
+### Version: 0.0.0-9000
+### Copyright: Henrik Bengtsson (2021)
+### License: MIT
+
+## Import bash utility functions
+incl="${BASH_SOURCE%/*}/incl"
+
+# shellcheck source=incl/asserts.sh
+source "${incl}/asserts.sh"
+# shellcheck source=incl/cli.sh
+source "${incl}/cli.sh"
+# shellcheck source=incl/conditions.sh
+source "${incl}/conditions.sh"
+# shellcheck source=incl/files.sh
+source "${incl}/files.sh"
+# shellcheck source=incl/output.sh
+source "${incl}/output.sh"
+
+
+
+# -------------------------------------------------------------------------
+# catfs functions
+# -------------------------------------------------------------------------
+function catfs_scratch_root {
+    local scratch_dir
+    scratch_dir=${SCRATCHDIR:-${TMPDIR}}
+    mdebug "scratch_dir=${scratch_dir}"
+    
+    if [[ -z "${scratch_dir}" ]]; then
+        scratch_dir=/tmp/$USER
+        make_dir "${scratch_dir}"
+    else
+        assert_dir_exists "${scratch_dir}"
+    fi
+    
+    echo "${scratch_dir}"
+}
+
+function catfs_target_db_dir {
+    local cache_root
+    local md5
+    local path
+    
+    cache_root=${scratch_dir}/.easycatfs
+    mdebug "catfs cache root: ${cache_root}"
+    make_dir "${cache_root}"
+
+    md5=$(md5sum <<< "$1" | cut -f 1 -d ' ')
+    mdebug "md5: ${md5}"
+
+    path=${cache_root}/${md5}
+    mdebug "mounts_db_dir: ${path}"
+
+    echo "${path}"
+}
+
+
+
+# -------------------------------------------------------------------------
+# MAIN
+# -------------------------------------------------------------------------
+## Actions
+action=
+dryrun=false
+force=false
+verbose=false
+args=
+last_arg=
+
+# Parse command-line options
+while [[ $# -gt 0 ]]; do
+    mdebug "Next CLI argument: $1"
+    ## Commands:
+    if [[ "$1" == "mount" ]]; then
+        action="$1"
+    elif [[ "$1" == "mounts" ]]; then
+        action="$1"
+    elif [[ "$1" == "unmount" ]]; then
+        action="$1"
+
+    ## Options (--flags):
+    elif [[ "$1" == "--help" ]]; then
+        action=help
+    elif [[ "$1" == "--version" ]]; then
+        action=version
+    elif [[ "$1" == "--debug" ]]; then
+        debug=true
+    elif [[ "$1" == "--dry-run" ]]; then
+        dryrun=true
+    elif [[ "$1" == "--verbose" ]]; then
+        verbose_level=1
+    
+    ## Options (--key=value):
+    elif [[ "$1" =~ ^--.*=.*$ ]]; then
+        key=${1//--}
+        key=${key//=*}
+        value=${1//--[[:alpha:]]*=}
+        mdebug "Key-value option '$1' parsed to key='$key', value='$value'"
+        if [[ -z $value ]]; then
+            merror "Option '--$key' must not be empty"
+        fi
+        if [[ "$key" == "verbose" ]]; then
+            verbose_level=$value
+        else
+            merror "Unknown option: $1"
+        fi
+    ## Additional options to be appended (rarely needed)
+    else
+        last_arg=$1
+        args="$args ${last_arg}"
+    fi
+    shift
+done
+
+## --help should always be available prior to any validation errors
+if [[ -z $action ]]; then
+    help
+    _exit 0
+elif [[ $action == "help" ]]; then
+    help full
+    _exit 0
+elif [[ $action == "version" ]]; then
+    version
+    _exit 0
+fi
+
+
+# -------------------------------------------------------------------------
+# Validate options
+# -------------------------------------------------------------------------
+
+
+# -------------------------------------------------------------------------
+# Initiate
+# -------------------------------------------------------------------------
+mdebug "action: ${action}"
+mdebug "debug: ${debug}"
+mdebug "verbose: ${verbose}"
+mdebug "verbose_level: ${verbose_level}"
+mdebug "dryrun: ${dryrun}"
+mdebug "force: ${force}"
+mdebug "path: ${path}"
+
+
+# -------------------------------------------------------------------------
+# Actions
+# -------------------------------------------------------------------------
+if [[ ${action} == "mount" ]]; then
+    bin=$(which catfs) || error "No such tool: catfs"
+    assert_file_executable "${bin}"
+    mdebug "catfs: ${bin}"
+    mdebug "$("${bin}" --version)"
+
+    [[ -n "${last_arg}" ]] || error "Missing target path argument"
+    target_path=${last_arg}
+    assert_dir_exists "${target_path}"
+
+    scratch_dir=$(catfs_scratch_root)
+    mounts_db_dir=$(catfs_target_db_dir "${target_path}")
+
+    ## Already mounted?
+    if [[ -d "${mounts_db_dir}" ]]; then
+        merror "Already mounted: ${target_path}"
+    fi
+    
+    make_dir "${mounts_db_dir}"
+    
+    mount_path=${scratch_dir}/${target_path}
+    mount_path=${mount_path/\/\//\/}
+    mdebug "mount_path: ${mount_path}"
+    make_dir "${mount_path}"
+
+    cache_path=$(mktemp --directory --tmpdir="${mounts_db_dir}")
+    mdebug "catfs cache path: ${cache_path}"
+    assert_dir_exists "${cache_path}"
+
+    ## Note, we need to redirect stdout for the subshell running in the
+    ## background, otherwise mount_path=$(easycatfs <path>) will block
+    "${bin}" "${target_path}" "${cache_path}" "${mount_path}" -o ro > /dev/null &
+    pid=$!
+    mdebug "catfs PID: ${pid}"
+
+    pid_file="${mounts_db_dir}/pid"
+    mdebug "pid_file: ${pid_file}"
+    echo "${pid}" > "${pid_file}"
+
+    target_file="${mounts_db_dir}/target"
+    mdebug "target_file: ${target_file}"
+    echo "${target_path}" > "${target_file}"
+
+    minfo "Mounted '${mount_path}' as read-only to '${target_path}'"
+    minfo "To unmount, call: easycatfs unmount \"${target_path}\""
+
+    echo "${mount_path}"
+fi
+
+
+if [[ ${action} == "unmount" ]]; then
+    [[ -n "${last_arg}" ]] || error "Missing target path argument"
+    target_path=${last_arg}
+    assert_dir_exists "${target_path}"
+    
+    scratch_dir=$(catfs_scratch_root)
+    mounts_db_dir=$(catfs_target_db_dir "${target_path}")
+
+    ## Already mounted?
+    if [[ ! -d "${mounts_db_dir}" ]]; then
+        merror "Not mounted: ${target_path}"
+    fi
+
+    mount_path=${scratch_dir}/${target_path}
+    mount_path=${mount_path/\/\//\/}
+    mdebug "mount_path: ${mount_path}"
+
+    pid_file="${mounts_db_dir}/pid"
+    assert_file_exists "${pid_file}"
+
+    typeset -i pid=$(cat "${pid_file}")
+    mdebug "catfs PID on file: ${pid}"
+
+    kill "${pid}" || error "Failed to terminate 'catfs' process with ${pid}"
+    minfo "Unmounted \"${mount_path}\" -> \"${target_path}\""
+    
+    remove_dir "${mounts_db_dir}"
+    remove_dir "${mount_path}"
+fi
+
+
+
+if [[ ${action} == "mounts" ]]; then
+    scratch_dir=$(catfs_scratch_root)
+
+    cache_root=${scratch_dir}/.easycatfs
+    make_dir "${cache_root}"
+
+    dirs=$(find "${cache_root}" -mindepth 1 -maxdepth 2 -type f -name target -exec dirname {} \;)
+    for dir in ${dirs[*]}; do
+        mdebug "dir: ${dir}"
+        
+        pid_file="${dir}/pid"
+        mdebug "pid_file: ${pid_file}"
+        typeset -i pid=$(cat "${pid_file}")
+        mdebug "catfs PID on file: ${pid}"
+        
+        target_file="${dir}/target"
+        mdebug "target_file: ${target_file}"
+        typeset target_path=$(cat "${target_file}")
+        mdebug "Target path on file: ${target_path}"
+
+        mount_path=${scratch_dir}/${target_path}
+        mount_path=${mount_path/\/\//\/}
+
+        md5=$(basename "${dir}")
+        
+        printf "%s -> %s (md5=%s pid=%d)\n" "${mount_path}" "${target_path}" "${md5}" "${pid}"
+    done
+fi
