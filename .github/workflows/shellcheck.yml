@@ -28,5 +28,5 @@ jobs:
 
     - name: ${{ matrix.config.test }}
       run: |
-        PATH="$PWD:$PATH" make shellcheck
+        (cd bin; ../shellcheck -x easycatfs)
 
