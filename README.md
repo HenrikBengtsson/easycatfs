@@ -24,10 +24,12 @@ cache folder as they are needed. This caching mechanism is fully
 automatic thanks to the **[catfs]** tool that is used internally.
 
 ```sh
+#! /usr/bin/env bash
+
 ## Temporarily mount folder on local drive
 shared_data=$(easycatfs mount /shared/data)
 
-some_software --input=${shared_data}
+some_software --input="${shared_data}"
 
 ## Unmount temporarily mounted folders
 easycatfs unmount /shared/data
