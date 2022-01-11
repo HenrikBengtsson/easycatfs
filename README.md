@@ -80,8 +80,8 @@ After making sure all above requirements are meet, install this software as:
 
 ```sh
 curl -L -O https://github.com/HenrikBengtsson/easycatfs/archive/refs/tags/0.1.0.tar.gz
-tar xf 0.1.0.tar.gz
-mv easycatfs /path/to/software/easycatfs-0.1.0
+tar xf easycatfs-0.1.0.tar.gz
+mv easycatfs-0.1.0 /path/to/software/
 export PATH=/path/to/software/easycatfs-0.1.0/bin:$PATH
 ```
 
