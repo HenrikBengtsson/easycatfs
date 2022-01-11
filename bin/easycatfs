@@ -154,7 +154,12 @@ function catfs_unmount {
     pid=$(cat "${pid_file}")
     mdebug "catfs PID on file: ${pid}"
 
+    ## Signal to catfs process for this mount to terminate
     kill "${pid}" || error "Failed to terminate 'catfs' process with ${pid}"
+    
+    ## Wait for catfs process to finish
+    tail --pid="${pid}" -f /dev/null
+    
     minfo "Unmounted \"${mount_path}\" -> \"${target_path}\""
     
     remove_dir "${mounts_db_dir}"
