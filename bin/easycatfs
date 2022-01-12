@@ -94,10 +94,12 @@ function catfs_scratch_root {
 }
 
 function catfs_target_db_dir {
+    local scratch_dir
     local cache_root
     local md5
     local path
     
+    scratch_dir=$(catfs_scratch_root)
     cache_root=${scratch_dir}/.easycatfs
     mdebug "catfs cache root: ${cache_root}"
     make_dir "${cache_root}"
