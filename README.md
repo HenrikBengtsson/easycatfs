@@ -11,19 +11,33 @@ result in:
  * decreased load on the network file system
 
 This is particularly beneficial when working on high-performance
-compute (HPC) clusters used by hundreds and thousands of processes and
+compute (HPC) clusters used by thousands of processes from hundred of
 users simultaneously.
 
-For example, say the software you use access the same data files under
-`/shared/data/` repeatedly.  If these files are large, you could
+_WARNING: The **easycatfs** tool is work in progress. It is very
+fresh and needs lots of real-world testing and benchmarking before
+considered stable._
+
+
+## The problem
+
+For example, say, the software you run access the same data files
+under `/shared/data/` repeatedly.  If these files are large, you could
 manually copy them to a local temporary folder (`cp -pR /shared/data
 /tmp/$USER`), run your software, and then remove the temporary folder
-(`rm /tmp/$USER/data`) when done.  This can be a tedious and
-unnecessarily expensive process, especially if the software only use a
-subset of the files in that folder.  The **easycatfs** tool solved this
-problem by working similarly, but it will only copy files to a local
-cache folder as they are needed. This caching mechanism is fully
-automatic thanks to the **[catfs]** tool that is used internally.
+(`rm /tmp/$USER/data`) when done.  This stage and unstage approach can
+be a tedious and unnecessarily expensive process, especially if the
+software only use a subset of the files in that folder.
+
+
+## The solution
+
+The **easycatfs** tool provides an easier solution to this problem.
+All that is needed is to _specify_ the folders to be staged locally,
+but there is no need for an explicit copy.  Files will only be copied,
+to a local file cache, if and when read.  This caching mechanism is
+fully automatic thanks to the **[catfs]** tool that is used
+internally.
 
 ```sh
 #! /usr/bin/env bash
@@ -45,13 +59,7 @@ version.  It is mounted as read-only and any attempts to write to it
 will produce an error.
 
 
-## Quality
-
-The **easycatfs** tool is very fresh and needs lots of real-world
-testing and benchmarking before considered stable.
-
-
-## Write-only?
+## Why read-only?
 
 The underlying **[catfs]** file-system tool supports writing as well,
 which means **easycatfs** could also do that.  For conservative
