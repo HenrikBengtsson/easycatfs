@@ -97,4 +97,3 @@ export PATH=/path/to/software/easycatfs-0.1.0/bin:$PATH
 
 
 [catfs]: https://github.com/kahing/catfs
-
