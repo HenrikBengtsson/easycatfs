@@ -72,7 +72,7 @@ source "${incl}/output.sh"
 # -------------------------------------------------------------------------
 function catfs_scratch_root {
     local scratch_dir
-    
+
     scratch_dir=${EASYCATFS_ROOT:-${SCRATCHDIR:-${TMPDIR}}}
     mdebug "scratch_dir=${scratch_dir}"
     
@@ -85,10 +85,14 @@ function catfs_scratch_root {
         ## Make user specific, unless already is
         if [[ $(basename "${scratch_dir}") != "${USER}" ]]; then
             scratch_dir=${scratch_dir}/${USER}
-            mdebug "scratch_dir=${scratch_dir} (appended ${USER})"
+            mdebug "scratch_dir=${scratch_dir} (appended \${USER})"
             make_dir "${scratch_dir}"
         fi
     fi
+
+    ## Make unique to the calling process (= the parent process)
+    scratch_dir=${scratch_dir}/ppid=${PPID}
+    mdebug "scratch_dir=${scratch_dir} (appended ppid=\${PPID})"
     
     echo "${scratch_dir}"
 }
