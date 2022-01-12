@@ -85,7 +85,7 @@ support.
 
 ## Requirements
 
-* Linux file system (local and remote)
+* Linux file system (local and network)
 * Bash
 * [catfs] - Cache AnyThing filesystem
 
