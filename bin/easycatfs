@@ -30,6 +30,7 @@
 ###  easycatfs mount "$HOME/R"
 ###  easycatfs mount "$HOME/.config"
 ###  easycatfs cache-size "$HOME/R" "$HOME/.config"
+###  easycatfs cache-size --all
 ###  easycatfs mounts
 ###  easycatfs unmount "$HOME/R"
 ###  easycatfs unmount --all
@@ -400,10 +401,18 @@ mdebug "args: [n=${#args[@]}] ${args[*]}"
 # Actions
 # -------------------------------------------------------------------------
 if [[ ${action} == "cache-size" ]]; then
-    [[ "${#args[@]}" -gt 0 ]] || error "Missing target path argument"
+    targets=("${args[@]}")
+    if [[ "${#targets[@]}" -eq 0 ]]; then
+       if $all; then
+           mapfile -t targets < <(catfs_mounts)
+       else
+           error "Missing target path argument"
+       fi
+    fi     
+    mdebug "Targets: [n=${#targets[@]}] ${targets[*]}"
     sizes=()
-    for target in "${args[@]}"; do
-      sizes+=("$(catfs_cache_size "${target}")")
+    for target in "${targets[@]}"; do
+        sizes+=("$(catfs_cache_size "${target}")")
     done
     mdebug "cache sizes: (${sizes[*]}) bytes"
     size=
