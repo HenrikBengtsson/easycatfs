@@ -8,6 +8,7 @@
 ###  mount        Mount target locally as read-only
 ###  unmount      Unmount locally mounted target
 ###  mounts       List currently mounted targets
+###  cache-size   Size of local cache for a target (in bytes)
 ###  config       Output configuration
 ###
 ### Options:
@@ -28,6 +29,7 @@
 ###  easycatfs config
 ###  easycatfs mount "$HOME/R"
 ###  easycatfs mount "$HOME/.config"
+###  easycatfs cache-size "$HOME/R"
 ###  easycatfs mounts
 ###  easycatfs unmount "$HOME/R"
 ###  easycatfs unmount --all
@@ -47,7 +49,7 @@
 ###  * Bash
 ###  * catfs (https://github.com/kahing/catfs)
 ###
-### Version: 0.1.1-9000
+### Version: 0.1.1-9001
 ### Copyright: Henrik Bengtsson (2021)
 ### License: MIT
 
@@ -97,18 +99,41 @@ function catfs_scratch_root {
     echo "${scratch_dir}"
 }
 
+function catfs_cache_size {
+    local target
+    local path
+    local size
+    
+    target=$1
+    mdebug "target: ${target}"
+    
+    path=$(catfs_target_db_dir "${target}")
+    mdebug "cache path: ${path}"
+    
+    size=0
+    if [[ -d "${path}" ]]; then
+        size=$(du --one-file-system --summarize --apparent-size --block-size=1 "${path}" | cut -f 1)
+    fi
+    mdebug "cache size: ${size} bytes"
+    
+    echo "${size}"
+}
+
 function catfs_target_db_dir {
     local scratch_dir
     local cache_root
     local md5
     local path
+    local target
+
+    target=$1
     
     scratch_dir=$(catfs_scratch_root)
     cache_root=${scratch_dir}/.easycatfs
     mdebug "catfs cache root: ${cache_root}"
     make_dir "${cache_root}"
 
-    md5=$(md5sum <<< "$1" | cut -f 1 -d ' ')
+    md5=$(md5sum <<< "${target}" | cut -f 1 -d ' ')
     mdebug "md5: ${md5}"
 
     path=${cache_root}/${md5}
@@ -116,7 +141,6 @@ function catfs_target_db_dir {
 
     echo "${path}"
 }
-
 
 function find_catfs {
     local bin
@@ -298,6 +322,8 @@ while [[ $# -gt 0 ]]; do
         action="$1"
     elif [[ "$1" == "unmount" ]]; then
         action="$1"
+    elif [[ "$1" == "cache-size" ]]; then
+        action="$1"
 
     ## Options (--flags):
     elif [[ "$1" == "--help" ]]; then
@@ -370,7 +396,11 @@ mdebug "path: ${path}"
 # -------------------------------------------------------------------------
 # Actions
 # -------------------------------------------------------------------------
-if [[ ${action} == "config" ]]; then
+if [[ ${action} == "cache-size" ]]; then
+    [[ -n "${last_arg}" ]] || error "Missing target path argument"
+    target=${last_arg}
+    catfs_cache_size "${target}"
+elif [[ ${action} == "config" ]]; then
     printf "mount_root=%s\n" "$(catfs_scratch_root)"
 elif [[ ${action} == "mount" ]]; then
     [[ -n "${last_arg}" ]] || error "Missing target path argument"

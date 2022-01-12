@@ -1,8 +1,11 @@
 # easycatfs
 
-## Version 0.1.1-9000
+## Version 0.1.1-9001
 
-* ...
+### New features
+
+* Add `easycatfs cache-size` to get the current file cache size (in bytes)
+  for a particular target.
 
 
 ## Version 0.1.1
