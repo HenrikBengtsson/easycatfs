@@ -430,13 +430,13 @@ elif [[ ${action} == "mount" ]]; then
 elif [[ ${action} == "unmount" ]]; then
     opts=
     if $all; then
-        targets=$(catfs_mounts)
+        mapfile -t targets < <(catfs_mounts)
     else
         [[ -n "${last_arg}" ]] || error "Missing target path argument"
         target_path=${last_arg}
-        targets=${last_arg}
+        targets=("${last_arg}")
     fi
-    for target in ${targets}; do
+    for target in "${targets[@]}"; do
         mdebug "catfs_unmount \"${target}\" ..."
         catfs_unmount "${target}"
         mdebug "catfs_unmount \"${target}\" ... done"
