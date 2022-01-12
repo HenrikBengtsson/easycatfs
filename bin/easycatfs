@@ -8,7 +8,7 @@
 ###  mount        Mount target locally as read-only
 ###  unmount      Unmount locally mounted target
 ###  mounts       List currently mounted targets
-###  cache-size   Size of local cache for a target (in bytes)
+###  cache-size   Total size of local cache for targets (in bytes)
 ###  config       Output configuration
 ###
 ### Options:
@@ -29,7 +29,7 @@
 ###  easycatfs config
 ###  easycatfs mount "$HOME/R"
 ###  easycatfs mount "$HOME/.config"
-###  easycatfs cache-size "$HOME/R"
+###  easycatfs cache-size "$HOME/R" "$HOME/.config"
 ###  easycatfs mounts
 ###  easycatfs unmount "$HOME/R"
 ###  easycatfs unmount --all
@@ -103,6 +103,8 @@ function catfs_cache_size {
     local target
     local path
     local size
+    local sizes
+    local ss
     
     target=$1
     mdebug "target: ${target}"
@@ -112,7 +114,7 @@ function catfs_cache_size {
     
     size=0
     if [[ -d "${path}" ]]; then
-        size=$(du --one-file-system --summarize --apparent-size --block-size=1 "${path}" | cut -f 1)
+        size=$(du --one-file-system --summarize --apparent-size --block-size=1 "${target}" | cut -f 1)
     fi
     mdebug "cache size: ${size} bytes"
     
@@ -305,7 +307,7 @@ action=
 dryrun=false
 force=false
 verbose=false
-args=
+args=()
 last_arg=
 full=false
 all=false
@@ -357,8 +359,8 @@ while [[ $# -gt 0 ]]; do
         fi
     ## Additional options to be appended (rarely needed)
     else
+        args+=("$1")
         last_arg=$1
-        args="$args ${last_arg}"
     fi
     shift
 done
@@ -391,15 +393,25 @@ mdebug "verbose_level: ${verbose_level}"
 mdebug "dryrun: ${dryrun}"
 mdebug "force: ${force}"
 mdebug "path: ${path}"
+mdebug "args: [n=${#args[@]}] ${args[*]}"
 
 
 # -------------------------------------------------------------------------
 # Actions
 # -------------------------------------------------------------------------
 if [[ ${action} == "cache-size" ]]; then
-    [[ -n "${last_arg}" ]] || error "Missing target path argument"
-    target=${last_arg}
-    catfs_cache_size "${target}"
+    [[ "${#args[@]}" -gt 0 ]] || error "Missing target path argument"
+    sizes=()
+    for target in "${args[@]}"; do
+      sizes+=("$(catfs_cache_size "${target}")")
+    done
+    mdebug "cache sizes: (${sizes[*]}) bytes"
+    size=
+    for ss in "${sizes[@]}"; do
+        size=$(( size + "${ss}" ))
+    done
+    mdebug "Total cache size: ${size} bytes"
+    echo "${size}"
 elif [[ ${action} == "config" ]]; then
     printf "mount_root=%s\n" "$(catfs_scratch_root)"
 elif [[ ${action} == "mount" ]]; then

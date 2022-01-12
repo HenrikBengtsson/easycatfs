@@ -4,8 +4,8 @@
 
 ### New features
 
-* Add `easycatfs cache-size` to get the current file cache size (in bytes)
-  for a particular target.
+* Add `easycatfs cache-size` to get the total file cache size (in bytes)
+  for one or more targets.
 
 
 ## Version 0.1.1
