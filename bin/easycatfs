@@ -433,7 +433,6 @@ elif [[ ${action} == "unmount" ]]; then
         mapfile -t targets < <(catfs_mounts)
     else
         [[ -n "${last_arg}" ]] || error "Missing target path argument"
-        target_path=${last_arg}
         targets=("${last_arg}")
     fi
     for target in "${targets[@]}"; do
