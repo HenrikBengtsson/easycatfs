@@ -16,7 +16,7 @@
 ###  --version    Output version of this software
 ###  --debug      Output detailed debug information
 ###  --verbose    Output informative message
-###  --all        Unmount all mounted targets
+###  --all        Apply command to all mounted targets
 ###  --full       More details when listing mounts
 ###
 ### and 'target' should be an existing folder.
