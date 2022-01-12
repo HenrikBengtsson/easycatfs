@@ -37,7 +37,8 @@ some_software --input="${shared_data}"
 easycatfs unmount /shared/data
 ```
 
-Above, `${shared_data}` would be something like `/tmp/alice/shared/data`
+Above, `${shared_data}` would be something like
+`/tmp/alice/ppid=15187/shared/data`.
 
 _Importantly_, the software must not write to the locally mounted
 version.  It is mounted as read-only and any attempts to write to it
