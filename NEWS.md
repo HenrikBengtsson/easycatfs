@@ -1,5 +1,15 @@
 # easycatfs
 
+## Version 0.1.2
+
+### New features
+
+* Add `easycatfs cache-size` to get the total file cache size (in bytes)
+  for one or more targets.
+
+* Now `mount` and `unmount` can take more than one target as input.
+
+
 ## Version 0.1.1
 
 ### Bug Fixes

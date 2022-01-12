@@ -2,12 +2,13 @@
 ### easycatfs
 ### 
 ### Usage:
-###  easycatfs <command> [options] <target>
+###  easycatfs <command> [options] <targets>
 ### 
 ### Commands:
 ###  mount        Mount target locally as read-only
 ###  unmount      Unmount locally mounted target
 ###  mounts       List currently mounted targets
+###  cache-size   Total size of local cache for targets (in bytes)
 ###  config       Output configuration
 ###
 ### Options:
@@ -15,10 +16,10 @@
 ###  --version    Output version of this software
 ###  --debug      Output detailed debug information
 ###  --verbose    Output informative message
-###  --all        Unmount all mounted targets
+###  --all        Apply command to all mounted targets
 ###  --full       More details when listing mounts
 ###
-### and 'target' should be an existing folder.
+### where <targets> is one or more existing target folders.
 ### ---
 ###
 ### Example:
@@ -28,8 +29,12 @@
 ###  easycatfs config
 ###  easycatfs mount "$HOME/R"
 ###  easycatfs mount "$HOME/.config"
+###  easycatfs mount "$HOME/.config" "$HOME/R"
+###  easycatfs cache-size "$HOME/.config" "$HOME/R"
+###  easycatfs cache-size --all
 ###  easycatfs mounts
 ###  easycatfs unmount "$HOME/R"
+###  easycatfs unmount "$HOME/.config" "$HOME/R"
 ###  easycatfs unmount --all
 ###
 ###  r_mount=$(easycatfs mount "$HOME/R")
@@ -47,7 +52,7 @@
 ###  * Bash
 ###  * catfs (https://github.com/kahing/catfs)
 ###
-### Version: 0.1.1
+### Version: 0.1.2
 ### Copyright: Henrik Bengtsson (2021)
 ### License: MIT
 
@@ -97,18 +102,43 @@ function catfs_scratch_root {
     echo "${scratch_dir}"
 }
 
+function catfs_cache_size {
+    local target
+    local path
+    local size
+    local sizes
+    local ss
+    
+    target=$1
+    mdebug "target: ${target}"
+    
+    path=$(catfs_target_db_dir "${target}")
+    mdebug "cache path: ${path}"
+    
+    size=0
+    if [[ -d "${path}" ]]; then
+        size=$(du --one-file-system --summarize --apparent-size --block-size=1 "${target}" | cut -f 1)
+    fi
+    mdebug "cache size: ${size} bytes"
+    
+    echo "${size}"
+}
+
 function catfs_target_db_dir {
     local scratch_dir
     local cache_root
     local md5
     local path
+    local target
+
+    target=$1
     
     scratch_dir=$(catfs_scratch_root)
     cache_root=${scratch_dir}/.easycatfs
     mdebug "catfs cache root: ${cache_root}"
     make_dir "${cache_root}"
 
-    md5=$(md5sum <<< "$1" | cut -f 1 -d ' ')
+    md5=$(md5sum <<< "${target}" | cut -f 1 -d ' ')
     mdebug "md5: ${md5}"
 
     path=${cache_root}/${md5}
@@ -116,7 +146,6 @@ function catfs_target_db_dir {
 
     echo "${path}"
 }
-
 
 function find_catfs {
     local bin
@@ -281,8 +310,7 @@ action=
 dryrun=false
 force=false
 verbose=false
-args=
-last_arg=
+args=()
 full=false
 all=false
 
@@ -297,6 +325,8 @@ while [[ $# -gt 0 ]]; do
     elif [[ "$1" == "mounts" ]]; then
         action="$1"
     elif [[ "$1" == "unmount" ]]; then
+        action="$1"
+    elif [[ "$1" == "cache-size" ]]; then
         action="$1"
 
     ## Options (--flags):
@@ -331,8 +361,7 @@ while [[ $# -gt 0 ]]; do
         fi
     ## Additional options to be appended (rarely needed)
     else
-        last_arg=$1
-        args="$args ${last_arg}"
+        args+=("$1")
     fi
     shift
 done
@@ -365,27 +394,61 @@ mdebug "verbose_level: ${verbose_level}"
 mdebug "dryrun: ${dryrun}"
 mdebug "force: ${force}"
 mdebug "path: ${path}"
+mdebug "args: [n=${#args[@]}] ${args[*]}"
 
 
 # -------------------------------------------------------------------------
 # Actions
 # -------------------------------------------------------------------------
-if [[ ${action} == "config" ]]; then
+if [[ ${action} == "cache-size" ]]; then
+    targets=("${args[@]}")
+    if [[ "${#targets[@]}" -eq 0 ]]; then
+       if $all; then
+           mapfile -t targets < <(catfs_mounts)
+       else
+           error "Missing target path argument"
+       fi
+    fi     
+    mdebug "Targets: [n=${#targets[@]}] ${targets[*]}"
+    sizes=()
+    for target in "${targets[@]}"; do
+        sizes+=("$(catfs_cache_size "${target}")")
+    done
+    mdebug "cache sizes: (${sizes[*]}) bytes"
+    size=
+    for ss in "${sizes[@]}"; do
+        size=$(( size + "${ss}" ))
+    done
+    mdebug "Total cache size: ${size} bytes"
+    echo "${size}"
+elif [[ ${action} == "config" ]]; then
     printf "mount_root=%s\n" "$(catfs_scratch_root)"
 elif [[ ${action} == "mount" ]]; then
-    [[ -n "${last_arg}" ]] || error "Missing target path argument"
-    target_path=${last_arg}
-    catfs_mount "${target_path}"
+    targets=("${args[@]}")
+    if [[ "${#targets[@]}" -eq 0 ]]; then
+       if $all; then
+           mapfile -t targets < <(catfs_mounts)
+       else
+           error "Missing target path argument"
+       fi
+    fi     
+    mdebug "Targets: [n=${#targets[@]}] ${targets[*]}"
+    for target in "${targets[@]}"; do
+        mdebug "catfs_unmount \"${target}\" ..."
+        catfs_mount "${target}"
+        mdebug "catfs_unmount \"${target}\" ... done"
+    done
 elif [[ ${action} == "unmount" ]]; then
-    opts=
-    if $all; then
-        targets=$(catfs_mounts)
-    else
-        [[ -n "${last_arg}" ]] || error "Missing target path argument"
-        target_path=${last_arg}
-        targets=${last_arg}
-    fi
-    for target in ${targets}; do
+    targets=("${args[@]}")
+    if [[ "${#targets[@]}" -eq 0 ]]; then
+       if $all; then
+           mapfile -t targets < <(catfs_mounts)
+       else
+           error "Missing target path argument"
+       fi
+    fi     
+    mdebug "Targets: [n=${#targets[@]}] ${targets[*]}"
+    for target in "${targets[@]}"; do
         mdebug "catfs_unmount \"${target}\" ..."
         catfs_unmount "${target}"
         mdebug "catfs_unmount \"${target}\" ... done"
