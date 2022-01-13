@@ -6,7 +6,7 @@
 
 * `easycatfs --version --full` reports on the catfs version too.
 
-### Bug Fixes
+### Bug fixes
 
 * `easycatfs mount` would not guarantee that the mount point is ready
   before returning. Now it polls the mount point until available.
@@ -24,7 +24,7 @@
 
 ## Version 0.1.1
 
-### Bug Fixes
+### Bug fixes
 
 * The temporary root folder was not guaranteed to be unique for each user,
   resulting in clashing folder paths on multi-tenant systems.
@@ -39,7 +39,7 @@
 
 ## Version 0.1.0
 
-### New Features
+### New features
 
 * Created `easycatfs`.
 
