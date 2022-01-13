@@ -171,6 +171,15 @@ function catfs_version {
     echo "${version}"
 }
 
+function catfs_wait_for_mount {
+    mdebug "Waiting for mount point to become available ..."
+    while ! mountpoint -q "$1"; do
+        mdebug "Polling mount point (every 0.1 seconds)"
+	sleep 0.1
+    done
+    mdebug "Mount point is available"
+}
+
 function catfs_mount {
     local bin
     local target_path
@@ -230,21 +239,7 @@ function catfs_mount {
 
     ## It looks like catfs takes ~0.1 seconds to complete the mount
     ## Let's wait for mount to become active.
-    ## SPECIAL CASE: If target is empty, we cannot rely on 'ls'
-    ## to check if it's ready.  If so, just wait for a second.
-    mdebug "Waiting for mount point to be available ..."
-    if [[ -z "$(ls "${target_path}")" ]]; then
-        mdebug "Special case: Target folder is empty"
-	sleep 1
-    else
-	## ... otherwise
-        mdebug "Polling mount point"
-        while [[ -z "$(ls "${mount_path}")" ]]; do
-	    sleep 0.1
-            mdebug "Polling mount point"
-	done
-    fi
-    mdebug "Mount point is available now"
+    catfs_wait_for_mount "${mount_path}"
     
     echo "${mount_path}"
 }
