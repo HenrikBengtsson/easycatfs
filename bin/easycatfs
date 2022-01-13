@@ -312,16 +312,16 @@ function catfs_unmount {
     scratch_dir=$(catfs_scratch_root)
     mounts_db_dir=$(catfs_target_db_dir "${target_path}")
 
-    ## Not mounted?
-    if [[ ! -d "${mounts_db_dir}" ]]; then
-        merror "Not mounted: ${target_path} [${mounts_db_dir} does not exists]"
-    elif ! is_mounted "${target_path}"; then
-        merror "Not mounted: ${target_path} [mountpoint says so]"
-    fi
-
     mount_path=${scratch_dir}/${target_path}
     mount_path=${mount_path/\/\//\/}
     mdebug "mount_path: ${mount_path}"
+
+    ## Not mounted?
+    if [[ ! -d "${mounts_db_dir}" ]]; then
+        merror "Not mounted: ${target_path} [${mounts_db_dir} does not exists]"
+    elif ! is_mounted "${mount_path}"; then
+        merror "Not mounted: ${target_path} [mountpoint says so]"
+    fi
 
     pid_file="${mounts_db_dir}/pid"
     assert_file_exists "${pid_file}"
