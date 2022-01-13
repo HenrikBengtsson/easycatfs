@@ -52,7 +52,7 @@
 ###  * Bash
 ###  * catfs (https://github.com/kahing/catfs)
 ###
-### Version: 0.1.2-9000
+### Version: 0.1.2-9001
 ### Copyright: Henrik Bengtsson (2021)
 ### License: MIT
 
@@ -213,7 +213,7 @@ function catfs_mount {
     ## Force in foreground?
     [[ "$(catfs_version)" == 0.8.0-9* ]] && opts+=(-f)
     mdebug "catfs extra options: [n=${#opts[@]}] ${opts[*]}"    
-    "${bin}" "${target_path}" "${cache_path}" "${mount_path}" -o ro "${opts[@]}" > /dev/null &
+    "${bin}" "${target_path}" "${cache_path}" "${mount_path}" -o ro "${opts[@]}" > /dev/null 2> "${mounts_db_dir}/catfs.log" &
     pid=$!
     mdebug "catfs PID: ${pid}"
 
@@ -228,6 +228,24 @@ function catfs_mount {
     minfo "Mounted '${mount_path}' as read-only to '${target_path}'"
     minfo "To unmount, call: easycatfs unmount \"${target_path}\""
 
+    ## It looks like catfs takes ~0.1 seconds to complete the mount
+    ## Let's wait for mount to become active.
+    ## SPECIAL CASE: If target is empty, we cannot rely on 'ls'
+    ## to check if it's ready.  If so, just wait for a second.
+    mdebug "Waiting for mount point to be available ..."
+    if [[ -z "$(ls "${target_path}")" ]]; then
+        mdebug "Special case: Target folder is empty"
+	sleep 1
+    else
+	## ... otherwise
+        mdebug "Polling mount point"
+        while [[ -z "$(ls "${mount_path}")" ]]; do
+	    sleep 0.1
+            mdebug "Polling mount point"
+	done
+    fi
+    mdebug "Mount point is available now"
+    
     echo "${mount_path}"
 }
 

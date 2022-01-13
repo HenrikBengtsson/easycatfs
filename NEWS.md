@@ -1,10 +1,15 @@
 # easycatfs
 
-## Version 0.1.2-9000
+## Version 0.1.2-9001
 
 ### New features
 
 * `easycatfs --version --full` reports on the catfs version too.
+
+### Bug Fixes
+
+* `easycatfs mount` would not guarantee that the mount point is ready
+  before returning. Now it polls the mount point until available.
 
 
 ## Version 0.1.2
