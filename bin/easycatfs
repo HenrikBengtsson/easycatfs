@@ -153,7 +153,6 @@ function find_catfs {
     bin=$(which catfs) || error "No such tool: catfs"
     assert_file_executable "${bin}"
     mdebug "catfs: ${bin}"
-    mdebug "$("${bin}" --version)"
     echo "${bin}"
 }
 
@@ -168,7 +167,7 @@ function catfs_version {
     if [[ "${version}" == 0.8.0 ]]; then
 	catfs --help | grep -q -F 'uid' && version=${version}-9000
     fi
-    
+    mdebug "catfs version: ${version}"
     echo "${version}"
 }
 
@@ -209,7 +208,12 @@ function catfs_mount {
 
     ## Note, we need to redirect stdout for the subshell running in the
     ## background, otherwise mount_path=$(easycatfs <path>) will block
-    "${bin}" "${target_path}" "${cache_path}" "${mount_path}" -o ro > /dev/null &
+    opts=()
+
+    ## Force in foreground?
+    [[ "$(catfs_version)" == 0.8.0-9* ]] && opts+=(-f)
+    mdebug "catfs extra options: [n=${#opts[@]}] ${opts[*]}"    
+    "${bin}" "${target_path}" "${cache_path}" "${mount_path}" -o ro "${opts[@]}" > /dev/null &
     pid=$!
     mdebug "catfs PID: ${pid}"
 
@@ -470,12 +474,12 @@ elif [[ ${action} == "unmount" ]]; then
         mdebug "catfs_unmount \"${target}\" ... done"
     done
 elif [[ ${action} == "mounts" ]]; then
-    opts=
+    opts=()
     if $full; then
-        opts="${opts} --full"
+        opts+=("--full")
     fi
     # shellcheck disable=SC2086
-    catfs_mounts ${opts}
+    catfs_mounts "${opts[@]}"
 else
     error "Unknown action: ${action}"
 fi
