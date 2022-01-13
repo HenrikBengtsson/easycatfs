@@ -156,7 +156,22 @@ function find_catfs {
     mdebug "$("${bin}" --version)"
     echo "${bin}"
 }
-  
+
+function catfs_version {
+    local bin
+    local version
+    
+    bin=$(find_catfs)
+    version=$("${bin}" --version | sed -E 's/^catfs +//g')
+    
+    ## SPECIAL CASE: Develop version based of 0.8.0?
+    if [[ "${version}" == 0.8.0 ]]; then
+	catfs --help | grep -q -F 'uid' && version=${version}-9000
+    fi
+    
+    echo "${version}"
+}
+
 function catfs_mount {
     local bin
     local target_path
@@ -375,6 +390,7 @@ elif [[ $action == "help" ]]; then
     _exit 0
 elif [[ $action == "version" ]]; then
     version
+    $full && catfs_version
     _exit 0
 fi
 

@@ -2,7 +2,9 @@
 
 ## Version 0.1.2-9000
 
-* ...
+### New features
+
+* `easycatfs --version --full` reports on the catfs version too.
 
 
 ## Version 0.1.2
