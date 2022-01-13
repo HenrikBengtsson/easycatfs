@@ -171,9 +171,13 @@ function catfs_version {
     echo "${version}"
 }
 
+function is_mounted {
+    mountpoint -q "$1"
+}
+
 function catfs_wait_for_mount {
     mdebug "Waiting for mount point to become available ..."
-    while ! mountpoint -q "$1"; do
+    while ! is_mounted "$1"; do
         mdebug "Polling mount point (every 0.1 seconds)"
 	sleep 0.1
     done
@@ -201,9 +205,11 @@ function catfs_mount {
 
     ## Already mounted?
     if [[ -d "${mounts_db_dir}" ]]; then
-        merror "Already mounted: ${target_path}"
+        merror "Already mounted: ${target_path} [${mounts_db_dir} exists]"
+    elif is_mounted "${target_path}"; then
+        merror "Already mounted: ${target_path} [mountpoint says so]"
     fi
-    
+
     make_dir "${mounts_db_dir}"
     
     mount_path=${scratch_dir}/${target_path}
@@ -308,7 +314,9 @@ function catfs_unmount {
 
     ## Not mounted?
     if [[ ! -d "${mounts_db_dir}" ]]; then
-        merror "Not mounted: ${target_path}"
+        merror "Not mounted: ${target_path} [${mounts_db_dir} does not exists]"
+    elif ! is_mounted "${target_path}"; then
+        merror "Not mounted: ${target_path} [mountpoint says so]"
     fi
 
     mount_path=${scratch_dir}/${target_path}
