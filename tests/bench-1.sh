@@ -4,13 +4,18 @@ function bench {
     command time --format="%E (user=%U kernel=%S) CPU=%P IO=(in=%I out=%O)" "$@"
 }
 
+
+echo "easycatfs and catfs versions:"
+easycatfs --version --full
+echo
+
 mkdir -p data
 
 ## Generate large file with random bytes
 file="512MiB.bin"
 if [[ ! -f "data/${file}" ]]; then
     mib=${file/MiB.bin/}
-    dd bs="$((${mib} / 16))M" count=16 iflag=fullblock if=/dev/urandom of="data/${file}"
+    dd bs="$((mib / 16))M" count=16 iflag=fullblock if=/dev/urandom of="data/${file}"
 fi	 
 
 echo "Test file: ${file} [$(du --bytes data/${file} | cut -f 1) bytes]"
