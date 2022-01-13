@@ -52,7 +52,7 @@
 ###  * Bash
 ###  * catfs (https://github.com/kahing/catfs)
 ###
-### Version: 0.1.2-9000
+### Version: 0.1.2-9001
 ### Copyright: Henrik Bengtsson (2021)
 ### License: MIT
 
@@ -153,10 +153,37 @@ function find_catfs {
     bin=$(which catfs) || error "No such tool: catfs"
     assert_file_executable "${bin}"
     mdebug "catfs: ${bin}"
-    mdebug "$("${bin}" --version)"
     echo "${bin}"
 }
-  
+
+function catfs_version {
+    local bin
+    local version
+    
+    bin=$(find_catfs)
+    version=$("${bin}" --version | sed -E 's/^catfs +//g')
+    
+    ## SPECIAL CASE: Develop version based of 0.8.0?
+    if [[ "${version}" == 0.8.0 ]]; then
+	catfs --help | grep -q -F 'uid' && version=${version}-9000
+    fi
+    mdebug "catfs version: ${version}"
+    echo "${version}"
+}
+
+function is_mounted {
+    mountpoint -q "$1"
+}
+
+function catfs_wait_for_mount {
+    mdebug "Waiting for mount point to become available ..."
+    while ! is_mounted "$1"; do
+        mdebug "Polling mount point (every 0.1 seconds)"
+	sleep 0.1
+    done
+    mdebug "Mount point is available"
+}
+
 function catfs_mount {
     local bin
     local target_path
@@ -178,9 +205,11 @@ function catfs_mount {
 
     ## Already mounted?
     if [[ -d "${mounts_db_dir}" ]]; then
-        merror "Already mounted: ${target_path}"
+        merror "Already mounted: ${target_path} [${mounts_db_dir} exists]"
+    elif is_mounted "${target_path}"; then
+        merror "Already mounted: ${target_path} [mountpoint says so]"
     fi
-    
+
     make_dir "${mounts_db_dir}"
     
     mount_path=${scratch_dir}/${target_path}
@@ -194,7 +223,12 @@ function catfs_mount {
 
     ## Note, we need to redirect stdout for the subshell running in the
     ## background, otherwise mount_path=$(easycatfs <path>) will block
-    "${bin}" "${target_path}" "${cache_path}" "${mount_path}" -o ro > /dev/null &
+    opts=()
+
+    ## Force in foreground?
+    [[ "$(catfs_version)" == 0.8.0-9* ]] && opts+=(-f)
+    mdebug "catfs extra options: [n=${#opts[@]}] ${opts[*]}"    
+    "${bin}" "${target_path}" "${cache_path}" "${mount_path}" -o ro "${opts[@]}" > /dev/null 2> "${mounts_db_dir}/catfs.log" &
     pid=$!
     mdebug "catfs PID: ${pid}"
 
@@ -209,6 +243,10 @@ function catfs_mount {
     minfo "Mounted '${mount_path}' as read-only to '${target_path}'"
     minfo "To unmount, call: easycatfs unmount \"${target_path}\""
 
+    ## It looks like catfs takes ~0.1 seconds to complete the mount
+    ## Let's wait for mount to become active.
+    catfs_wait_for_mount "${mount_path}"
+    
     echo "${mount_path}"
 }
 
@@ -274,14 +312,16 @@ function catfs_unmount {
     scratch_dir=$(catfs_scratch_root)
     mounts_db_dir=$(catfs_target_db_dir "${target_path}")
 
-    ## Not mounted?
-    if [[ ! -d "${mounts_db_dir}" ]]; then
-        merror "Not mounted: ${target_path}"
-    fi
-
     mount_path=${scratch_dir}/${target_path}
     mount_path=${mount_path/\/\//\/}
     mdebug "mount_path: ${mount_path}"
+
+    ## Not mounted?
+    if [[ ! -d "${mounts_db_dir}" ]]; then
+        merror "Not mounted: ${target_path} [${mounts_db_dir} does not exists]"
+    elif ! is_mounted "${mount_path}"; then
+        merror "Not mounted: ${target_path} [mountpoint says so]"
+    fi
 
     pid_file="${mounts_db_dir}/pid"
     assert_file_exists "${pid_file}"
@@ -375,6 +415,7 @@ elif [[ $action == "help" ]]; then
     _exit 0
 elif [[ $action == "version" ]]; then
     version
+    $full && catfs_version
     _exit 0
 fi
 
@@ -454,12 +495,12 @@ elif [[ ${action} == "unmount" ]]; then
         mdebug "catfs_unmount \"${target}\" ... done"
     done
 elif [[ ${action} == "mounts" ]]; then
-    opts=
+    opts=()
     if $full; then
-        opts="${opts} --full"
+        opts+=("--full")
     fi
     # shellcheck disable=SC2086
-    catfs_mounts ${opts}
+    catfs_mounts "${opts[@]}"
 else
     error "Unknown action: ${action}"
 fi

@@ -1,1 +1,4 @@
 *~
+bin/catfs
+tests/data
+data
