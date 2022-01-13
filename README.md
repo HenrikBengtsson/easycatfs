@@ -108,7 +108,7 @@ The **[catfs]** project provides [prebuilt executables](https://github.com/kahin
 
 ```sh
 git clone https://github.com/kahing/catfs.git
-cargo install --root=/path/to/software/easycatfs-0.1.2/bin --path=catfs
+cargo install --root=/path/to/software/easycatfs-0.1.2 --path=catfs
 ```
 
 
