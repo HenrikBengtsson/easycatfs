@@ -104,10 +104,11 @@ mv easycatfs-0.1.2 /path/to/software/
 export PATH=/path/to/software/easycatfs-0.1.2/bin:$PATH
 ```
 
-_Tips_: If you don't already have `catfs` on the search `PATH`, you can [download the `catfs` executable binary](https://github.com/kahing/catfs/releases) and copy it to the same `bin/` folder. Alternatively, if you have Rust installed, you can install `catfs` from source as:
+The **[catfs]** project provides [prebuilt executables](https://github.com/kahing/catfs/releases) and easy ways to install from source (`cargo install catfs`).  However, those version are too old.  Instead, we want to install the developer version available on GitHub:
 
 ```sh
-cargo install --root=/path/to/software/easycatfs-0.1.2/bin catfs
+git clone https://github.com/kahing/catfs.git
+cargo install --root=/path/to/software/easycatfs-0.1.2/bin --path=catfs
 ```
 
 
