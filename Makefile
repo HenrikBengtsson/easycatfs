@@ -1,5 +1,5 @@
 shellcheck:
-	@cd bin/; shellcheck -x easycatfs
+	cd bin/; shellcheck -x easycatfs
 	shellcheck tests/*.sh
 
 
