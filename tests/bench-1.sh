@@ -1,5 +1,15 @@
 #! /usr/bin/env bash
 
+## If 'easycatfs' is not on the PATH, ...
+if ! which easycatfs &> /dev/null; then
+    ## try to load it as an environment module
+    module load CBI 2> /dev/null  ## specific to C4 & Wynton
+    module load easycatfs 2> /dev/null
+fi
+
+which easycatfs &> /dev/null || { 2>&1 echo "ERROR: No such executable: easycatfs"; exit 1; }
+
+
 function bench {
     local res
 
@@ -34,22 +44,22 @@ echo "Test file: ${file} [$(du --bytes data/${file} | cut -f 1) bytes]"
 echo
 
 echo "Benchmark target (./data):"
+ls -l "data/${file}"
 tf="$(mktemp)"
-bench cp data/${file} "${tf}"
+bench cp "data/${file}" "${tf}"
+rm "${tf}"
 for kk in {1..5}; do
     printf "%d. " "${kk}"
-    bench md5sum data/${file}
+    bench md5sum "data/${file}"
 done
 echo
 
 data=$(easycatfs mount "${PWD}/data")
 echo "Benchmark local mount (${data}):"
-
+ls -l "${data}/${file}"
 for kk in {1..5}; do
     printf "%d. " "${kk}"
     bench md5sum "${data}/${file}"
 done
-
-rm "${tf}"
 
 easycatfs unmount --all
