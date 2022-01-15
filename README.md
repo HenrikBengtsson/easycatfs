@@ -112,7 +112,7 @@ git clone https://github.com/kahing/catfs.git
 cargo install --root=/path/to/software/easycatfs-0.1.2 --path=catfs
 ```
 
-In order to build from source, you also the development files for **libfuse**, e.g. `yum install fuse-lib` on CentOS and `apt install libfuse-dev` on Ubuntu.
+In order to build from source, you also need the development files for **libfuse**, e.g. `yum install fuse-lib` on CentOS and `apt install libfuse-dev` on Ubuntu.
 
 
 ## Change log
