@@ -87,6 +87,7 @@ support.
 
 * Linux file system (local and network)
 * Bash
+* libfuse (e.g. `yum install fuse-lib` on CentOS and `apt install libfuse2` on Ubuntu)
 * [catfs] - Cache AnyThing filesystem
 
 
@@ -104,12 +105,14 @@ mv easycatfs-0.1.2 /path/to/software/
 export PATH=/path/to/software/easycatfs-0.1.2/bin:$PATH
 ```
 
-The **[catfs]** project provides [prebuilt executables](https://github.com/kahing/catfs/releases) and easy ways to install from source (`cargo install catfs`).  However, those version are too old.  Instead, we want to install the developer version available on GitHub:
+The **[catfs]** project provides [prebuilt executables](https://github.com/kahing/catfs/releases) and easy ways to install from source (`cargo install catfs`).  However, those version are too old.  Instead, we want to install the developer version available on GitHub from source:
 
 ```sh
 git clone https://github.com/kahing/catfs.git
 cargo install --root=/path/to/software/easycatfs-0.1.2 --path=catfs
 ```
+
+In order to build from source, you also the development files for **libfuse**, e.g. `yum install fuse-lib` on CentOS and `apt install libfuse-dev` on Ubuntu.
 
 
 ## Change log
