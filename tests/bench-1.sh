@@ -2,11 +2,17 @@
 
 function bench {
     local res
-    local n
-    
-    mapfile -t res < <(command time --format="%E (user=%U kernel=%S) CPU=%P IO=(in=%I out=%O)" "$@" 2>&1)
-    n=${#res[@]}
-    echo "$1: ${res[$((n-1))]}"
+
+#    ## For some reason, this doesn't work on Wynton    
+#    local n
+#    mapfile -t res < <(command time --format="%E (user=%U kernel=%S) CPU=%P IO=(in=%I out=%O)" "$@" 2>&1)
+#    n=${#res[@]}
+#    res=${res[$((n-1))]}
+
+    res=$(command time --format="%E (user=%U kernel=%S) CPU=%P IO=(in=%I out=%O)" "$@" 2>&1)
+    res=$(echo "${res}" | tail -1)
+
+    echo "$1: ${res}"
 }
 
 
