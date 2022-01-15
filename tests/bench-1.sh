@@ -30,15 +30,17 @@ echo
 echo "Benchmark target (./data):"
 tf="$(mktemp)"
 bench cp data/${file} "${tf}"
-bench md5sum data/${file}
-bench md5sum data/${file}
+for kk in {1..5}; do
+    printf "%d. " "${kk}"
+    bench md5sum data/${file}
+done
 echo
 
 data=$(easycatfs mount "${PWD}/data")
 echo "Benchmark local mount (${data}):"
 
 for kk in {1..5}; do
-    echo "Iteration ${kk}:"
+    printf "%d. " "${kk}"
     bench md5sum "${data}/${file}"
 done
 
