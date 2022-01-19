@@ -68,6 +68,10 @@ sample=DRR016125
 done
 echo
 
+## Make sure to unmount everything (also on errors)
+trap "easycatfs unmount --all" EXIT
+
+## Mount targets locally
 athal_index=$(easycatfs mount "${PWD}/athal_index")
 data=$(easycatfs mount "${PWD}/data")
 echo "Benchmark local mounts:"
@@ -82,5 +86,3 @@ done
 echo
 
 rm -rf "${tf}"
-
-easycatfs unmount --all

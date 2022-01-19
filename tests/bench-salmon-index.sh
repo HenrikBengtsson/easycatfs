@@ -59,6 +59,10 @@ for kk in {1..2}; do
 done
 echo
 
+## Make sure to unmount everything (also on errors)
+trap "easycatfs unmount --all" EXIT
+
+## Mount targets locally
 ref=$(easycatfs mount "${PWD}/ref")
 echo "Benchmark local mount (${ref}):"
 ls -l "${ref}/${file}"
@@ -71,4 +75,3 @@ done
 
 rm -rf "${tf}"
 
-easycatfs unmount --all
