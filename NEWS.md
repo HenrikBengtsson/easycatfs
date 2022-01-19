@@ -1,5 +1,16 @@
 # easycatfs
 
+## Version 0.1.4
+
+### New features
+
+* Add support for `easycatfs config root`, `easycatfs config --full root`,
+  and  `easycatfs config --all`.
+
+* Environment variable `CATFS` can be used to override the default 'catfs'
+  binary otherwise found on the `PATH`.
+  
+
 ## Version 0.1.3
 
 ### New features
