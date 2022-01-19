@@ -62,7 +62,6 @@ echo "   2. ./data"
 bench cp data/"${sample}"_?.fastq.gz "${tf}"
 for kk in {1..3}; do
     printf "%d. " "${kk}"
-sample=DRR016125
     bench salmon quant -i athal_index -l A -1 "data/${sample}_1.fastq.gz" -2 "data/${sample}_2.fastq.gz" -p 8 --validateMappings -o "${tf}/quants/${sample}_quant"
     rm -rf "${tf}/quants"
 done
