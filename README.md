@@ -42,13 +42,13 @@ internally.
 ```sh
 #! /usr/bin/env bash
 
+## Make sure to unmount everything (also on errors)
+trap "easycatfs unmount --all" EXIT
+
 ## Temporarily mount folder on local drive
 shared_data=$(easycatfs mount /shared/data)
 
 some_software --input="${shared_data}"
-
-## Unmount temporarily mounted folders
-easycatfs unmount /shared/data
 ```
 
 Above, `${shared_data}` would be something like
