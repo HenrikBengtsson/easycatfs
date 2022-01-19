@@ -57,7 +57,7 @@
 ###  * Bash
 ###  * catfs (https://github.com/kahing/catfs)
 ###
-### Version: 0.1.3-9001
+### Version: 0.1.3-9002
 ### Copyright: Henrik Bengtsson (2021)
 ### License: MIT
 
@@ -154,8 +154,11 @@ function catfs_target_db_dir {
 
 function find_catfs {
     local bin
-    
-    bin=$(which catfs) || error "No such tool: catfs"
+
+    bin=${CATFS}
+    if [[ ! -f "${bin}" ]]; then
+        bin=$(which catfs) || error "No such tool: catfs"
+    fi
     assert_file_executable "${bin}"
     mdebug "catfs: ${bin}"
     echo "${bin}"
