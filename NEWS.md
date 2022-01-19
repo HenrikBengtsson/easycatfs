@@ -1,8 +1,11 @@
 # easycatfs
 
-## Version 0.1.3-9000
+## Version 0.1.3-9001
 
-* ...
+### New features
+
+* Add support for `easycatfs config root`, `easycatfs config --full root`,
+  and  `easycatfs config --all`.
 
 
 ## Version 0.1.3

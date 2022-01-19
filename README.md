@@ -22,12 +22,24 @@ considered stable._
 ## The problem
 
 For example, say, the software you run access the same data files
-under `/shared/data/` repeatedly.  If these files are large, you could
-manually copy them to a local temporary folder (`cp -pR /shared/data
-/tmp/$USER`), run your software, and then remove the temporary folder
-(`rm /tmp/$USER/data`) when done.  This stage and unstage approach can
-be a tedious and unnecessarily expensive process, especially if the
-software only use a subset of the files in that folder.
+under `/shared/data/` over and over.  If these files are large and
+live on a network file system, a significant amount of the processing
+time might be spend on the extra overhead that comes from reading
+files over the network.  Also, if the network file system is busy
+serving many other processes and users at the same time, there is also
+slow down due to this.
+
+One approach to address this is to manually copy the files we need to
+a local temporary folder (`cp -pR /shared/data /tmp/$USER`) and point
+our software to these locally hosted files.  If the software accesses
+the same files multiple times, we will see a performance improvement
+because we suffer less from the overhead that comes from working
+directly towards the network file system. When done, we must not
+forget to remove the temporary folder (`rm -rf /tmp/$USER/data`).
+
+This stage and unstage approach can be a tedious and an unnecessarily
+expensive process, especially if the software only use a subset of the
+files in that folder.
 
 
 ## The solution
@@ -45,18 +57,47 @@ internally.
 ## Make sure to unmount everything (also on errors)
 trap "easycatfs unmount --all" EXIT
 
-## Temporarily mount folder on local drive
-shared_data=$(easycatfs mount /shared/data)
+## Temporarily mount two folders on local drive
+ref=$(easycatfs mount "/resources/ref")
+data=$(easycatfs mount "/shared/data")
 
-some_software --input="${shared_data}"
+cntseq -r "${ref}/hg.fa" -i "${data}/sample1.fq" sample1.bam
+cntseq -r "${ref}/hg.fa" -i "${data}/sample2.fq" sample2.bam
 ```
 
-Above, `${shared_data}` would be something like
+Above, `${ref}` would be something like
+`/tmp/alice/ppid=15187/resources/ref`. and `${data}` something like
 `/tmp/alice/ppid=15187/shared/data`.
 
-_Importantly_, the software must not write to the locally mounted
-version.  It is mounted as read-only and any attempts to write to it
-will produce an error.
+_Importantly_, the software must not write to these locally mounted
+folders.  They are mounted as read-only and any attempts to write to
+them will produce an error.
+
+
+## Alternative style
+
+An alternative style to the one used in the above example is:
+
+```sh
+#! /usr/bin/env bash
+
+## Make sure to unmount everything (also on errors)
+trap "easycatfs unmount --all" EXIT
+
+## Temporarily mount two folders on local drive
+local=$(easycatfs config root)
+easycatfs mount "/resources/ref" "/shared/data"
+
+cntseq -r "${local}/resources/ref/hg.fa" -i "${local}/shared/data/sample1.fq" sample1.bam
+cntseq -r "${local}/resources/ref/hg.fa" -i "${local}/shared/data/sample2.fq" sample2.bam
+```
+
+which better resembles the version that would work directly toward the targets;
+
+```sh
+cntseq -r "/resources/ref/hg.fa" -i "/shared/data/sample1.fq" sample1.bam
+cntseq -r "/resources/ref/hg.fa" -i "/shared/data/sample2.fq" sample2.bam
+```
 
 
 ## Why read-only?

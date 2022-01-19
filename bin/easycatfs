@@ -9,15 +9,15 @@
 ###  unmount      Unmount locally mounted target
 ###  mounts       List currently mounted targets
 ###  cache-size   Total size of local cache for targets (in bytes)
-###  config       Output configuration
+###  config       Output configuration parameters
 ###
 ### Options:
 ###  --help       Display the full help page with examples
 ###  --version    Output version of this software
 ###  --debug      Output detailed debug information
 ###  --verbose    Output informative message
-###  --all        Apply command to all mounted targets
-###  --full       More details when listing mounts
+###  --all        Apply command to all alternatives
+###  --full       More detailed output
 ###
 ### where <targets> is one or more existing target folders.
 ### ---
@@ -26,7 +26,8 @@
 ###  easycatfs --help
 ###  easycatfs --version
 ###
-###  easycatfs config
+###  easycatfs config --all
+###  easycatfs config root
 ###  easycatfs mount "$HOME/R"
 ###  easycatfs mount "$HOME/.config"
 ###  easycatfs mount "$HOME/.config" "$HOME/R"
@@ -37,8 +38,12 @@
 ###  easycatfs unmount "$HOME/.config" "$HOME/R"
 ###  easycatfs unmount --all
 ###
-###  r_mount=$(easycatfs mount "$HOME/R")
-###  export R_LIBS_USER=${r_mount}/%p-library/%v
+###  home=$(easycatfs mount "$HOME")
+###  export R_LIBS_USER=${home}/R/%p-library/%v
+###
+###  root=$(easycatfs config root)
+###  easycatfs mount "$HOME"
+###  export R_LIBS_USER=${root}/${HOME}/R/%p-library/%v
 ###
 ### Environment variables:
 ###
@@ -52,7 +57,7 @@
 ###  * Bash
 ###  * catfs (https://github.com/kahing/catfs)
 ###
-### Version: 0.1.3-9000
+### Version: 0.1.3-9001
 ### Copyright: Henrik Bengtsson (2021)
 ### License: MIT
 
@@ -463,7 +468,27 @@ if [[ ${action} == "cache-size" ]]; then
     mdebug "Total cache size: ${size} bytes"
     echo "${size}"
 elif [[ ${action} == "config" ]]; then
-    printf "mount_root=%s\n" "$(catfs_scratch_root)"
+    if $all; then
+        printf "root=%s\n" "$(catfs_scratch_root)"
+    elif [[ "${#args[@]}" -eq 0 ]]; then
+        error "Missing name of config parameter to display"
+    elif [[ "${#args[@]}" -gt 1 ]]; then
+        error "Only one parameter can be display at the time: [n=${#args[@]}] ${#args[*]}"
+    else            
+        name=${args[${#args[@]}-1]}
+        if [[ "${name}" == "root" ]]; then
+            value=$(catfs_scratch_root)
+        else
+            error "Unknown config parameter: '${name}'"
+        fi
+        ## <name>=<value> or just <value>?
+        if $full; then
+            printf "%s=%s\n" "${name}" "${value}"
+        else
+            echo "${value}"
+        fi            
+    fi
+    exit 0     
 elif [[ ${action} == "mount" ]]; then
     targets=("${args[@]}")
     if [[ "${#targets[@]}" -eq 0 ]]; then
