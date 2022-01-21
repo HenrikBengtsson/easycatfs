@@ -148,7 +148,7 @@ function catfs_cache_sizes {
         if $full; then
             printf "%s: %s bytes\n" "${target}" "${size}"
         fi
-        total=$(( total + "${size}" ))
+        total=$(( total + size ))
     done
     mdebug "Total cache size: ${total} bytes"
     if $full; then
