@@ -2,6 +2,13 @@
 
 ## Version 0.1.4-9000
 
+### New features
+
+* Now `easycatfs unmount` reports on the current cache size before unmounting,
+  unless `--quiet` is used.
+
+* Add option `--quiet`.
+
 ### Bug fixes
 
 * `easycatfs cache-size <target>` would calculate the size of the target

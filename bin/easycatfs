@@ -18,6 +18,7 @@
 ###  --verbose    Output informative message
 ###  --all        Apply command to all alternatives
 ###  --full       More detailed output
+###  --quiet      Don't output anything.
 ###
 ### where <targets> is one or more existing target folders.
 ### ---
@@ -37,6 +38,7 @@
 ###  easycatfs unmount "$HOME/R"
 ###  easycatfs unmount "$HOME/.config" "$HOME/R"
 ###  easycatfs unmount --all
+###  easycatfs unmount --all --quiet
 ###
 ###  home=$(easycatfs mount "$HOME")
 ###  export R_LIBS_USER=${home}/R/%p-library/%v
@@ -361,6 +363,7 @@ verbose=false
 args=()
 full=false
 all=false
+quiet=false
 
 # Parse command-line options
 while [[ $# -gt 0 ]]; do
@@ -392,6 +395,8 @@ while [[ $# -gt 0 ]]; do
         all=true
     elif [[ "$1" == "--full" ]]; then
         full=true
+    elif [[ "$1" == "--quiet" ]]; then
+        quiet=true
     
     ## Options (--key=value):
     elif [[ "$1" =~ ^--.*=.*$ ]]; then
@@ -517,11 +522,25 @@ elif [[ ${action} == "unmount" ]]; then
        fi
     fi     
     mdebug "Targets: [n=${#targets[@]}] ${targets[*]}"
-    for target in "${targets[@]}"; do
-        mdebug "catfs_unmount \"${target}\" ..."
-        catfs_unmount "${target}"
-        mdebug "catfs_unmount \"${target}\" ... done"
-    done
+    if [[ ${#targets[@]} -gt 0 ]]; then
+        if ! $quiet; then
+            echo "Cache summary:"
+            total=0
+        fi
+        for target in "${targets[@]}"; do
+            mdebug "catfs_unmount \"${target}\" ..."
+            if ! $quiet; then
+                size=$(catfs_cache_size "${target}")
+                echo "${target}: ${size} bytes"
+                total=$(( total + "${size}" ))
+            fi
+            catfs_unmount "${target}"
+            mdebug "catfs_unmount \"${target}\" ... done"
+        done
+        if ! $quiet; then
+            echo "Total: ${total} bytes"
+        fi
+    fi
 elif [[ ${action} == "mounts" ]]; then
     opts=()
     if $full; then
