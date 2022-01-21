@@ -113,8 +113,6 @@ function catfs_cache_size {
     local target
     local path
     local size
-    local sizes
-    local ss
     
     target=$1
     mdebug "target: ${target}"
@@ -129,6 +127,35 @@ function catfs_cache_size {
     mdebug "cache size: ${size} bytes"
     
     echo "${size}"
+}
+
+function catfs_cache_sizes {
+    local full
+    local size
+    local total
+    
+    full=${1:-false}
+
+    mdebug "Targets: [n=${#targets[@]}] ${targets[*]}"
+
+    if $full; then
+        echo "Cache summary:"
+    fi
+
+    total=
+    for target in "${targets[@]}"; do
+        size=$(catfs_cache_size "${target}")
+        if $full; then
+            printf "%s: %s bytes\n" "${target}" "${size}"
+        fi
+        total=$(( total + "${size}" ))
+    done
+    mdebug "Total cache size: ${total} bytes"
+    if $full; then
+        printf "Total cache size: %s bytes\n" "${total}"
+    else
+        echo "${total}"
+    fi
 }
 
 function catfs_target_db_dir {
@@ -465,19 +492,8 @@ if [[ ${action} == "cache-size" ]]; then
        else
            error "Missing target path argument"
        fi
-    fi     
-    mdebug "Targets: [n=${#targets[@]}] ${targets[*]}"
-    sizes=()
-    for target in "${targets[@]}"; do
-        sizes+=("$(catfs_cache_size "${target}")")
-    done
-    mdebug "cache sizes: (${sizes[*]}) bytes"
-    size=
-    for ss in "${sizes[@]}"; do
-        size=$(( size + "${ss}" ))
-    done
-    mdebug "Total cache size: ${size} bytes"
-    echo "${size}"
+    fi
+    catfs_cache_sizes "$full" "${targets[@]}"
 elif [[ ${action} == "config" ]]; then
     if $all; then
         printf "root=%s\n" "$(catfs_scratch_root)"
@@ -524,25 +540,16 @@ elif [[ ${action} == "unmount" ]]; then
            error "Missing target path argument"
        fi
     fi     
-    mdebug "Targets: [n=${#targets[@]}] ${targets[*]}"
+    mdebug "Targets: [n=${#targets[@]}] ${targets[*]}"    
     if [[ ${#targets[@]} -gt 0 ]]; then
         if ! $quiet; then
-            echo "Cache summary:"
-            total=0
+           catfs_cache_sizes true "${targets[@]}"
         fi
         for target in "${targets[@]}"; do
             mdebug "catfs_unmount \"${target}\" ..."
-            if ! $quiet; then
-                size=$(catfs_cache_size "${target}")
-                echo "${target}: ${size} bytes"
-                total=$(( total + "${size}" ))
-            fi
             catfs_unmount "${target}"
             mdebug "catfs_unmount \"${target}\" ... done"
         done
-        if ! $quiet; then
-            echo "Total: ${total} bytes"
-        fi
     fi
 elif [[ ${action} == "mounts" ]]; then
     opts=()

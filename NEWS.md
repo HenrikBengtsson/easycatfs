@@ -1,6 +1,6 @@
 # easycatfs
 
-## Version 0.1.4-9000
+## Version 0.1.4-9001
 
 ### New features
 
@@ -8,6 +8,8 @@
   unless `--quiet` is used.
 
 * Now `easycatfs mount` support `--quiet`.
+
+* Now `easycatfs cache-size --full` gives a per target and total cache size.
 
 * Add option `--quiet`.
 
