@@ -139,7 +139,7 @@ function catfs_cache_sizes {
     mdebug "Targets: [n=${#targets[@]}] ${targets[*]}"
 
     if $full; then
-        echo "Cache summary:"
+        echo "Cache summary (easycatfs):"
     fi
 
     total=
