@@ -143,7 +143,10 @@ function catfs_clear_cache {
     mdebug "cache path: ${path}"
     
     if [[ -d "${path}" ]]; then
-        rm -rf "${path:?}"/{*,.?*}
+        for d in "${path}"/tmp.*; do
+            mdebug "cache subfolder: ${d}"
+            [[ -d "${d}" ]] && rm -rf "${d:?}"/{*,.[^.]*}
+        done          
     fi
 }
 
