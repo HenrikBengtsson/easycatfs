@@ -2,7 +2,10 @@
 
 ## Version 0.1.4-9000
 
-* ...
+### Bug fixes
+
+* `easycatfs cache-size <target>` would calculate the size of the target
+  folder and not the cache for the target folder.
 
 
 ## Version 0.1.4

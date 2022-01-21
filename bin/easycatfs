@@ -57,7 +57,7 @@
 ###  * Bash
 ###  * catfs (https://github.com/kahing/catfs)
 ###
-### Version: 0.1.4-9000
+### Version: 0.1.4-9001
 ### Copyright: Henrik Bengtsson (2021)
 ### License: MIT
 
@@ -122,7 +122,7 @@ function catfs_cache_size {
     
     size=0
     if [[ -d "${path}" ]]; then
-        size=$(du --one-file-system --summarize --apparent-size --block-size=1 "${target}" | cut -f 1)
+        size=$(du --one-file-system --summarize --apparent-size --block-size=1 "${path}" | cut -f 1)
     fi
     mdebug "cache size: ${size} bytes"
     
