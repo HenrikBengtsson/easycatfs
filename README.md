@@ -54,7 +54,7 @@ internally.
 ```sh
 #! /usr/bin/env bash
 
-## Make sure to unmount everything (also on errors)
+## Make sure to unmount everything (also on interrupts and errors)
 trap "easycatfs unmount --all" EXIT
 
 ## Temporarily mount two folders on local drive
@@ -81,15 +81,15 @@ An alternative style to the one used in the above example is:
 ```sh
 #! /usr/bin/env bash
 
-## Make sure to unmount everything (also on errors)
+## Make sure to unmount everything (also on interrupts and errors)
 trap "easycatfs unmount --all" EXIT
 
 ## Temporarily mount two folders on local drive
-local=$(easycatfs config root)
+L_ROOT=$(easycatfs config root)
 easycatfs mount "/resources/ref" "/shared/data"
 
-cntseq -r "${local}/resources/ref/hg.fa" -i "${local}/shared/data/sample1.fq" sample1.bam
-cntseq -r "${local}/resources/ref/hg.fa" -i "${local}/shared/data/sample2.fq" sample2.bam
+cntseq -r "${L_ROOT}/resources/ref/hg.fa" -i "${L_ROOT}/shared/data/sample1.fq" sample1.bam
+cntseq -r "${L_ROOT}/resources/ref/hg.fa" -i "${L_ROOT}/shared/data/sample2.fq" sample2.bam
 ```
 
 which better resembles the version that would work directly toward the targets;
