@@ -1,8 +1,10 @@
 # easycatfs
 
-## Version 0.1.4-9001
+## Version 0.1.4-9002
 
 ### New features
+
+* Add `easycatfs clear-cache`.
 
 * Now `easycatfs unmount` reports on the current cache size before unmounting,
   unless `--quiet` is used.

@@ -9,6 +9,7 @@
 ###  unmount      Unmount locally mounted target
 ###  mounts       List currently mounted targets
 ###  cache-size   Total size of local cache for targets (in bytes)
+###  clear-cache  Clear cache for targets
 ###  config       Output configuration parameters
 ###
 ### Options:
@@ -34,6 +35,8 @@
 ###  easycatfs mount "$HOME/.config" "$HOME/R"
 ###  easycatfs cache-size "$HOME/.config" "$HOME/R"
 ###  easycatfs cache-size --all
+###  easycatfs clear-cache "$HOME/R"
+###  easycatfs clear-cache --all
 ###  easycatfs mounts
 ###  easycatfs unmount "$HOME/R"
 ###  easycatfs unmount "$HOME/.config" "$HOME/R"
@@ -59,7 +62,7 @@
 ###  * Bash
 ###  * catfs (https://github.com/kahing/catfs)
 ###
-### Version: 0.1.4-9001
+### Version: 0.1.4-9002
 ### Copyright: Henrik Bengtsson (2021)
 ### License: MIT
 
@@ -129,6 +132,21 @@ function catfs_cache_size {
     echo "${size}"
 }
 
+function catfs_clear_cache {
+    local target
+    local path
+    
+    target=$1
+    mdebug "target: ${target}"
+    
+    path=$(catfs_target_db_dir "${target}")
+    mdebug "cache path: ${path}"
+    
+    if [[ -d "${path}" ]]; then
+        rm -rf "${path:?}"/{*,.?*}
+    fi
+}
+
 function catfs_cache_sizes {
     local full
     local size
@@ -157,6 +175,7 @@ function catfs_cache_sizes {
         echo "${total}"
     fi
 }
+
 
 function catfs_target_db_dir {
     local scratch_dir
@@ -409,6 +428,8 @@ while [[ $# -gt 0 ]]; do
         action="$1"
     elif [[ "$1" == "cache-size" ]]; then
         action="$1"
+    elif [[ "$1" == "clear-cache" ]]; then
+        action="$1"
 
     ## Options (--flags):
     elif [[ "$1" == "--help" ]]; then
@@ -494,6 +515,20 @@ if [[ ${action} == "cache-size" ]]; then
        fi
     fi
     catfs_cache_sizes "$full" "${targets[@]}"
+elif [[ ${action} == "clear-cache" ]]; then
+    targets=("${args[@]}")
+    if [[ "${#targets[@]}" -eq 0 ]]; then
+       if $all; then
+           mapfile -t targets < <(catfs_mounts)
+       else
+           error "Missing target path argument"
+       fi
+    fi
+    for target in "${targets[@]}"; do
+        mdebug "catfs_clear_cache \"${target}\" ..."
+        catfs_clear_cache "${target}"
+        mdebug "catfs_clear_cache \"${target}\" ... done"
+    done
 elif [[ ${action} == "config" ]]; then
     if $all; then
         printf "root=%s\n" "$(catfs_scratch_root)"
