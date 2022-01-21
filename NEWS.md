@@ -7,6 +7,8 @@
 * Now `easycatfs unmount` reports on the current cache size before unmounting,
   unless `--quiet` is used.
 
+* Now `easycatfs mount` support `--quiet`.
+
 * Add option `--quiet`.
 
 ### Bug fixes

@@ -206,6 +206,7 @@ function catfs_mount {
     local target_file
 
     target_path=$1
+    quiet=${2:-false}
     assert_dir_exists "${target_path}"
     
     bin=$(find_catfs)
@@ -256,8 +257,10 @@ function catfs_mount {
     ## It looks like catfs takes ~0.1 seconds to complete the mount
     ## Let's wait for mount to become active.
     catfs_wait_for_mount "${mount_path}"
-    
-    echo "${mount_path}"
+
+    if ! $quiet; then
+        echo "${mount_path}"
+    fi
 }
 
 
@@ -508,9 +511,9 @@ elif [[ ${action} == "mount" ]]; then
     fi     
     mdebug "Targets: [n=${#targets[@]}] ${targets[*]}"
     for target in "${targets[@]}"; do
-        mdebug "catfs_unmount \"${target}\" ..."
-        catfs_mount "${target}"
-        mdebug "catfs_unmount \"${target}\" ... done"
+        mdebug "catfs_mount \"${target}\" ..."
+        catfs_mount "${target}" "${quiet}"
+        mdebug "catfs_mount \"${target}\" ... done"
     done
 elif [[ ${action} == "unmount" ]]; then
     targets=("${args[@]}")
