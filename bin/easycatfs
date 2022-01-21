@@ -103,7 +103,7 @@ function catfs_scratch_root {
     fi
 
     ## Make unique to the calling process (= the parent process)
-    scratch_dir=${scratch_dir}/ppid=${PPID}
+    scratch_dir=${scratch_dir}/ppid_${PPID}
     mdebug "scratch_dir=${scratch_dir} (appended ppid=\${PPID})"
     
     echo "${scratch_dir}"
