@@ -1,5 +1,26 @@
 # easycatfs
 
+## Version 0.1.5
+
+### New features
+
+* Add `easycatfs clear-cache`.
+
+* Now `easycatfs unmount` reports on the current cache size before unmounting,
+  unless `--quiet` is used.
+
+* Now `easycatfs mount` support `--quiet`.
+
+* Now `easycatfs cache-size --full` gives a per target and total cache size.
+
+* Add option `--quiet`.
+
+### Bug fixes
+
+* `easycatfs cache-size <target>` would calculate the size of the target
+  folder and not the cache for the target folder.
+
+
 ## Version 0.1.4
 
 ### New features

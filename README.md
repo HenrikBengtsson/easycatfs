@@ -1,6 +1,6 @@
 [![shellcheck](https://github.com/HenrikBengtsson/easycatfs/actions/workflows/shellcheck.yml/badge.svg)](https://github.com/HenrikBengtsson/easycatfs/actions/workflows/shellcheck.yml)
 
-# easycatfs - Easy Read-Only Mounting of Slow Folders onto a Local Drive
+# easycatfs - Easy Mounting of Slow Folders onto Local Disk
 
 This is Linux command-line tool for mounting one or more folders on a
 network file system on a local disk such that the local-disk folders
@@ -54,7 +54,7 @@ internally.
 ```sh
 #! /usr/bin/env bash
 
-## Make sure to unmount everything (also on errors)
+## Make sure to unmount everything (also on interrupts and errors)
 trap "easycatfs unmount --all" EXIT
 
 ## Temporarily mount two folders on local drive
@@ -81,15 +81,15 @@ An alternative style to the one used in the above example is:
 ```sh
 #! /usr/bin/env bash
 
-## Make sure to unmount everything (also on errors)
+## Make sure to unmount everything (also on interrupts and errors)
 trap "easycatfs unmount --all" EXIT
 
 ## Temporarily mount two folders on local drive
-local=$(easycatfs config root)
+L_ROOT=$(easycatfs config root)
 easycatfs mount "/resources/ref" "/shared/data"
 
-cntseq -r "${local}/resources/ref/hg.fa" -i "${local}/shared/data/sample1.fq" sample1.bam
-cntseq -r "${local}/resources/ref/hg.fa" -i "${local}/shared/data/sample2.fq" sample2.bam
+cntseq -r "${L_ROOT}/resources/ref/hg.fa" -i "${L_ROOT}/shared/data/sample1.fq" sample1.bam
+cntseq -r "${L_ROOT}/resources/ref/hg.fa" -i "${L_ROOT}/shared/data/sample2.fq" sample2.bam
 ```
 
 which better resembles the version that would work directly toward the targets;
@@ -140,17 +140,17 @@ it to location of choice, and put its `bin/` folder on the search
 `PATH`.  For example,
 
 ```sh
-curl -L -O https://github.com/HenrikBengtsson/easycatfs/archive/refs/tags/0.1.4.tar.gz
-tar xf 0.1.4.tar.gz
-mv easycatfs-0.1.4 /path/to/software/
-export PATH=/path/to/software/easycatfs-0.1.4/bin:$PATH
+curl -L -O https://github.com/HenrikBengtsson/easycatfs/archive/refs/tags/0.1.5.tar.gz
+tar xf 0.1.5.tar.gz
+mv easycatfs-0.1.5 /path/to/software/
+export PATH=/path/to/software/easycatfs-0.1.5/bin:$PATH
 ```
 
 The **[catfs]** project provides [prebuilt executables](https://github.com/kahing/catfs/releases) and easy ways to install from source (`cargo install catfs`).  However, those version are too old.  Instead, we want to install the developer version available on GitHub from source:
 
 ```sh
 git clone https://github.com/kahing/catfs.git
-cargo install --root=/path/to/software/easycatfs-0.1.4 --path=catfs
+cargo install --root=/path/to/software/easycatfs-0.1.5 --path=catfs
 ```
 
 In order to build from source, you also need the development files for **libfuse**, e.g. `yum install fuse-lib` on CentOS and `apt install libfuse-dev` on Ubuntu.

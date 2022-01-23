@@ -9,6 +9,7 @@
 ###  unmount      Unmount locally mounted target
 ###  mounts       List currently mounted targets
 ###  cache-size   Total size of local cache for targets (in bytes)
+###  clear-cache  Clear cache for targets
 ###  config       Output configuration parameters
 ###
 ### Options:
@@ -18,6 +19,7 @@
 ###  --verbose    Output informative message
 ###  --all        Apply command to all alternatives
 ###  --full       More detailed output
+###  --quiet      Don't output anything.
 ###
 ### where <targets> is one or more existing target folders.
 ### ---
@@ -33,10 +35,13 @@
 ###  easycatfs mount "$HOME/.config" "$HOME/R"
 ###  easycatfs cache-size "$HOME/.config" "$HOME/R"
 ###  easycatfs cache-size --all
+###  easycatfs clear-cache "$HOME/R"
+###  easycatfs clear-cache --all
 ###  easycatfs mounts
 ###  easycatfs unmount "$HOME/R"
 ###  easycatfs unmount "$HOME/.config" "$HOME/R"
 ###  easycatfs unmount --all
+###  easycatfs unmount --all --quiet
 ###
 ###  home=$(easycatfs mount "$HOME")
 ###  export R_LIBS_USER=${home}/R/%p-library/%v
@@ -57,7 +62,7 @@
 ###  * Bash
 ###  * catfs (https://github.com/kahing/catfs)
 ###
-### Version: 0.1.4
+### Version: 0.1.5
 ### Copyright: Henrik Bengtsson (2021)
 ### License: MIT
 
@@ -101,7 +106,7 @@ function catfs_scratch_root {
     fi
 
     ## Make unique to the calling process (= the parent process)
-    scratch_dir=${scratch_dir}/ppid=${PPID}
+    scratch_dir=${scratch_dir}/ppid_${PPID}
     mdebug "scratch_dir=${scratch_dir} (appended ppid=\${PPID})"
     
     echo "${scratch_dir}"
@@ -111,8 +116,6 @@ function catfs_cache_size {
     local target
     local path
     local size
-    local sizes
-    local ss
     
     target=$1
     mdebug "target: ${target}"
@@ -122,12 +125,60 @@ function catfs_cache_size {
     
     size=0
     if [[ -d "${path}" ]]; then
-        size=$(du --one-file-system --summarize --apparent-size --block-size=1 "${target}" | cut -f 1)
+        size=$(du --one-file-system --summarize --apparent-size --block-size=1 "${path}" | cut -f 1)
     fi
     mdebug "cache size: ${size} bytes"
     
     echo "${size}"
 }
+
+function catfs_clear_cache {
+    local target
+    local path
+    
+    target=$1
+    mdebug "target: ${target}"
+    
+    path=$(catfs_target_db_dir "${target}")
+    mdebug "cache path: ${path}"
+    
+    if [[ -d "${path}" ]]; then
+        for d in "${path}"/tmp.*; do
+            mdebug "cache subfolder: ${d}"
+            [[ -d "${d}" ]] && rm -rf "${d:?}"/{*,.[^.]*}
+        done          
+    fi
+}
+
+function catfs_cache_sizes {
+    local full
+    local size
+    local total
+    
+    full=${1:-false}
+
+    mdebug "Targets: [n=${#targets[@]}] ${targets[*]}"
+
+    if $full; then
+        echo "Cache summary (easycatfs):"
+    fi
+
+    total=
+    for target in "${targets[@]}"; do
+        size=$(catfs_cache_size "${target}")
+        if $full; then
+            printf "%s: %s bytes\n" "${target}" "${size}"
+        fi
+        total=$(( total + size ))
+    done
+    mdebug "Total cache size: ${total} bytes"
+    if $full; then
+        printf "Total cache size: %s bytes\n" "${total}"
+    else
+        echo "${total}"
+    fi
+}
+
 
 function catfs_target_db_dir {
     local scratch_dir
@@ -204,6 +255,7 @@ function catfs_mount {
     local target_file
 
     target_path=$1
+    quiet=${2:-false}
     assert_dir_exists "${target_path}"
     
     bin=$(find_catfs)
@@ -254,8 +306,10 @@ function catfs_mount {
     ## It looks like catfs takes ~0.1 seconds to complete the mount
     ## Let's wait for mount to become active.
     catfs_wait_for_mount "${mount_path}"
-    
-    echo "${mount_path}"
+
+    if ! $quiet; then
+        echo "${mount_path}"
+    fi
 }
 
 
@@ -361,6 +415,7 @@ verbose=false
 args=()
 full=false
 all=false
+quiet=false
 
 # Parse command-line options
 while [[ $# -gt 0 ]]; do
@@ -375,6 +430,8 @@ while [[ $# -gt 0 ]]; do
     elif [[ "$1" == "unmount" ]]; then
         action="$1"
     elif [[ "$1" == "cache-size" ]]; then
+        action="$1"
+    elif [[ "$1" == "clear-cache" ]]; then
         action="$1"
 
     ## Options (--flags):
@@ -392,6 +449,8 @@ while [[ $# -gt 0 ]]; do
         all=true
     elif [[ "$1" == "--full" ]]; then
         full=true
+    elif [[ "$1" == "--quiet" ]]; then
+        quiet=true
     
     ## Options (--key=value):
     elif [[ "$1" =~ ^--.*=.*$ ]]; then
@@ -457,19 +516,22 @@ if [[ ${action} == "cache-size" ]]; then
        else
            error "Missing target path argument"
        fi
-    fi     
-    mdebug "Targets: [n=${#targets[@]}] ${targets[*]}"
-    sizes=()
+    fi
+    catfs_cache_sizes "$full" "${targets[@]}"
+elif [[ ${action} == "clear-cache" ]]; then
+    targets=("${args[@]}")
+    if [[ "${#targets[@]}" -eq 0 ]]; then
+       if $all; then
+           mapfile -t targets < <(catfs_mounts)
+       else
+           error "Missing target path argument"
+       fi
+    fi
     for target in "${targets[@]}"; do
-        sizes+=("$(catfs_cache_size "${target}")")
+        mdebug "catfs_clear_cache \"${target}\" ..."
+        catfs_clear_cache "${target}"
+        mdebug "catfs_clear_cache \"${target}\" ... done"
     done
-    mdebug "cache sizes: (${sizes[*]}) bytes"
-    size=
-    for ss in "${sizes[@]}"; do
-        size=$(( size + "${ss}" ))
-    done
-    mdebug "Total cache size: ${size} bytes"
-    echo "${size}"
 elif [[ ${action} == "config" ]]; then
     if $all; then
         printf "root=%s\n" "$(catfs_scratch_root)"
@@ -503,9 +565,9 @@ elif [[ ${action} == "mount" ]]; then
     fi     
     mdebug "Targets: [n=${#targets[@]}] ${targets[*]}"
     for target in "${targets[@]}"; do
-        mdebug "catfs_unmount \"${target}\" ..."
-        catfs_mount "${target}"
-        mdebug "catfs_unmount \"${target}\" ... done"
+        mdebug "catfs_mount \"${target}\" ..."
+        catfs_mount "${target}" "${quiet}"
+        mdebug "catfs_mount \"${target}\" ... done"
     done
 elif [[ ${action} == "unmount" ]]; then
     targets=("${args[@]}")
@@ -516,12 +578,17 @@ elif [[ ${action} == "unmount" ]]; then
            error "Missing target path argument"
        fi
     fi     
-    mdebug "Targets: [n=${#targets[@]}] ${targets[*]}"
-    for target in "${targets[@]}"; do
-        mdebug "catfs_unmount \"${target}\" ..."
-        catfs_unmount "${target}"
-        mdebug "catfs_unmount \"${target}\" ... done"
-    done
+    mdebug "Targets: [n=${#targets[@]}] ${targets[*]}"    
+    if [[ ${#targets[@]} -gt 0 ]]; then
+        if ! $quiet; then
+           catfs_cache_sizes true "${targets[@]}"
+        fi
+        for target in "${targets[@]}"; do
+            mdebug "catfs_unmount \"${target}\" ..."
+            catfs_unmount "${target}"
+            mdebug "catfs_unmount \"${target}\" ... done"
+        done
+    fi
 elif [[ ${action} == "mounts" ]]; then
     opts=()
     if $full; then
