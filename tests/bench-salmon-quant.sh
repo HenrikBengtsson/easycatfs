@@ -26,6 +26,9 @@ if ! which easycatfs &> /dev/null; then
 fi
 which easycatfs &> /dev/null || { 2>&1 echo "ERROR: No such executable: easycatfs"; exit 1; }
 
+MODULEPATH=$HOME/modulefiles:$MODULEPATH
+module load easycatfs/devel
+
 echo "easycatfs and catfs versions:"
 easycatfs --version --full
 echo
@@ -69,6 +72,20 @@ echo
 
 ## Make sure to unmount everything (also on errors)
 trap "easycatfs unmount --all" EXIT
+
+## Mount targets locally
+athal_index=$(easycatfs mount "${PWD}/athal_index")
+echo "Benchmark local mounts:"
+echo " - Mountpoints"
+echo "   1. ${athal_index}"
+for kk in {1..3}; do
+    printf "%d. " "${kk}"
+    bench salmon quant -i "${athal_index}" -l A -1 "data/${sample}_1.fastq.gz" -2 "data/${sample}_2.fastq.gz" -p 8 --validateMappings -o "${tf}/quants/${sample}_quant"
+    rm -rf "${tf}/quants"
+done
+echo
+easycatfs unmount --all
+
 
 ## Mount targets locally
 athal_index=$(easycatfs mount "${PWD}/athal_index")
