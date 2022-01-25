@@ -16,6 +16,7 @@ echo
 echo "Hostname: $(hostname)"
 
 echo "Other existing job-specific /scratch folders:"
+# shellcheck disable=SC2207
 dirs=($(find /scratch -maxdepth 1 -user "${USER}" -type d))
 count=${#dirs[@]}
 count=$((count-1))
@@ -42,6 +43,7 @@ echo "Pre-existing mounts:"
 easycatfs mounts --full
 
 echo "Pre-existing catfs processes:"
+# shellcheck disable=SC2207
 pids=($(pgrep catfs))
 echo " - count: ${#pids[@]}"
 for pid in "${pids[@]}"; do
