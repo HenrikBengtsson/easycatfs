@@ -365,6 +365,7 @@ function catfs_unmount {
     local scratch_dir
     local mounts_db_dir
     local mount_path
+    local cache_path
     local pid
     local pid_file
     
@@ -399,6 +400,8 @@ function catfs_unmount {
     
     minfo "Unmounted \"${mount_path}\" -> \"${target_path}\""
     
+    cache_path=$(catfs_target_db_dir "${target_path}")
+    remove_dir "${cache_path}"
     remove_dir "${mounts_db_dir}"
     remove_dir "${mount_path}"
 }
