@@ -1,5 +1,9 @@
 shellcheck:
-	cd bin/; shellcheck -x easycatfs
+	{ \
+	    cd bin/;\
+	    shellcheck -s bash -x incl/*.sh; \
+	    shellcheck -x easycatfs; \
+	}
 	shellcheck tests/*.sh
 
 
