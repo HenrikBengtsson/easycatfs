@@ -6,7 +6,7 @@ verbose=false
 theme=
 
 function _tput {
-    if [[ $theme == "none" ]]; then
+    if [[ $theme == "none" ]] || [[ -n ${NO_COLOR} ]]; then
         return
     fi
     tput "$@" 2> /dev/null
@@ -36,15 +36,9 @@ function mdebug0 {
 }
 
 function merror {
-    local info version
+    local info
     {
-        info="ucsf-vpn $(version)"
-        version=$(openconnect_version 2> /dev/null)
-        if [[ -n $version ]]; then
-            info="$info, OpenConnect $version"
-        else
-            info="$info, OpenConnect version unknown"
-        fi
+        info="$(basename "$0") $(version)"
         [[ -n $info ]] && info=" [$info]"
         _tput setaf 1 ## red
         echo "ERROR: $*$info"
@@ -105,9 +99,6 @@ function _exit {
 }
 
 
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-# OUTPUT
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ## Use colored stdout if the terminal supports it
 ## and as long as a stdout are not redirected
 function term_colors {
@@ -148,4 +139,28 @@ function term_colors {
 
         export reset=
     fi
+}
+
+
+function term_width {
+    local value
+    value=$(tput cols)
+    [[ -z ${value} ]] && value=79
+    echo "${value}"
+}
+
+function term_height {
+    local value
+    value=$(tput lines)
+    [[ -z ${value} ]] && value=24
+    echo "${value}"
+}
+
+
+function ruler {
+    local width
+    local symbol
+    symbol=${1:-"-"}
+    width=${2:-$(term_width)}
+    printf -- "%*s" "${width}" " " | tr " " "${symbol}"
 }
